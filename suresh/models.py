@@ -1,4 +1,3 @@
-from asyncio.windows_events import NULL
 from django.db import models
 import json
 from django.conf import settings
