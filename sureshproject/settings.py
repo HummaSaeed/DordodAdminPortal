@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure--9vyg166!n-7b#yk)lp9h91=q=#^rq!jq03hjkm6e#gd0gvt2*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['https://dordod.com/']
+ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
@@ -85,6 +85,11 @@ DATABASES = {
     }
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -117,9 +122,8 @@ USE_I18N = True
 USE_TZ = True
 # CORS configuration (for React frontend)
 CORS_ALLOWED_ORIGINS = [
-    'https://dordod.com',
+    "http://localhost:3000",
 ]
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 

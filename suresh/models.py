@@ -1,29 +1,28 @@
+from asyncio.windows_events import NULL
 from django.db import models
+import json
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Custom user manager
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name, password=None, **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
-        user = self.model(email=email, first_name=first_name, last_name=last_name, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        return self.create_user(email, password, **extra_fields)
 
-        return self.create_user(email, first_name, last_name, password, **extra_fields)
+
 
 # Custom user model
 class CustomUser(AbstractBaseUser, PermissionsMixin):
@@ -32,7 +31,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=30)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
@@ -44,23 +42,26 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 # Personal Information Model
 class PersonalInformation(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    personal_pic = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
-    middle_name = models.CharField(max_length=30, blank=True, null=True)
-    preferred_full_name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=15)
-    nationality = models.CharField(max_length=50)
-    marital_status = models.CharField(max_length=30, blank=True, null=True)
-    suffix = models.CharField(max_length=10, blank=True, null=True)
-    date_of_birth = models.DateField()
-    birth_name = models.CharField(max_length=50, blank=True, null=True)
-    gender = models.CharField(max_length=10)
-    country = models.CharField(max_length=50)
-    state = models.CharField(max_length=50)
-    city = models.CharField(max_length=50)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)  # New field
+    first_name = models.CharField(max_length=30,blank=True,null=True)
+    middle_name = models.CharField(max_length=30, blank=True,null=True)
+    last_name = models.CharField(max_length=30,blank=True,null=True)
+    preferred_full_name = models.CharField(max_length=60, blank=True,null=True)
+    email = models.EmailField(default='default@example.com')
+    phone_number = models.CharField(max_length=15,blank=True,null=True)
+    nationality = models.CharField(max_length=30,blank=True,null=True)
+    date_of_birth = models.DateField(max_length=30,blank=True,null=True)
+    birth_name = models.CharField(max_length=30, blank=True,null=True)
+    marital_status = models.CharField(max_length=20,blank=True,null=True)
+    suffix = models.CharField(max_length=10, blank=True,null=True)
+    gender = models.CharField(max_length=10,blank=True,null=True)
+    country = models.CharField(max_length=30,blank=True,null=True)
+    state = models.CharField(max_length=30,blank=True,null=True)
+    city = models.CharField(max_length=30,blank=True,null=True)
 
     def __str__(self):
-        return f"{self.user.first_name}'s Personal Info"
+     return self.first_name if self.first_name else "Unnamed Person"
 
 # Global Information Model
 class GlobalInformation(models.Model):
@@ -221,14 +222,23 @@ class WorkItem(models.Model):
     def __str__(self):
         return f"{self.title} ({self.work_type}) - {self.user.email}"
 class SwotAnalysis(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='swot_analysis')
-    strengths = models.TextField(blank=True, null=True)
-    weaknesses = models.TextField(blank=True, null=True)
-    opportunities = models.TextField(blank=True, null=True)
-    threats = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='swot_analyses')
 
-    def __str__(self):
-        return f"SWOT Analysis for {self.user.email}"
+class Strength(models.Model):
+    swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='strengths')
+    description = models.TextField()
+
+class Weakness(models.Model):
+    swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='weaknesses')
+    description = models.TextField()
+
+class Opportunity(models.Model):
+    swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='opportunities',null=True, blank=True)
+    description = models.TextField()
+
+class Threat(models.Model):
+    swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='threats')
+    description = models.TextField()
 class MainGoal(models.Model):
     GOAL_CATEGORIES = [
         ('spiritual', 'Spiritual Goals'),
@@ -267,18 +277,46 @@ class SubGoal(models.Model):
     def __str__(self):
         return f"{self.name} (SubGoal of {self.main_goal.name})"
 class Course(models.Model):
-    course_id = models.CharField(max_length=100, unique=True)
     title = models.CharField(max_length=255)
-    details = models.TextField()
-    instructor = models.CharField(max_length=255)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    credit_hours = models.IntegerField()
+    instructor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="courses"
+    )
+    description = models.TextField(null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    credit_hours = models.IntegerField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    purchasers = models.ManyToManyField(CustomUser, related_name='purchased_courses', blank=True)
+    discounted_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    purchasers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='purchased_courses')
+    def __str__(self):
+        return self.title
+
+class VideoLecture(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="video_lectures")
+    title = models.CharField(max_length=255)
+    video_file = models.FileField(upload_to="course_videos/")
+    description = models.TextField(blank=True)
 
     def __str__(self):
         return self.title
+
+class Quiz(models.Model):
+    video_lecture = models.ForeignKey(VideoLecture, on_delete=models.CASCADE, related_name="quizzes")
+    question = models.CharField(max_length=255)
+    option_a = models.CharField(max_length=255)
+    option_b = models.CharField(max_length=255)
+    option_c = models.CharField(max_length=255)
+    option_d = models.CharField(max_length=255)
+    correct_answer = models.CharField(max_length=1, choices=[
+        ('A', 'Option A'),
+        ('B', 'Option B'),
+        ('C', 'Option C'),
+        ('D', 'Option D'),
+    ])
+
+    def __str__(self):
+        return self.question
 class Habit(models.Model):
     FREQUENCIES = [
         ('daily', 'Daily'),
@@ -290,7 +328,7 @@ class Habit(models.Model):
     frequency = models.CharField(max_length=10, choices=FREQUENCIES)
     time = models.TimeField(null=True, blank=True)  # Preferred time for the habit
     category = models.CharField(max_length=50)  # e.g., Health, Productivity, etc.
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)  
     updated_at = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)  # To enable/disable habits

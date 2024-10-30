@@ -19,7 +19,13 @@ from .models import (
     MainGoal,
     SubGoal,
     Course,
-    Habit
+    Habit,
+    Strength,
+    Opportunity,
+    Threat,
+    Weakness,
+    Quiz,
+    VideoLecture
 )
 
 # CustomUser serializers
@@ -45,6 +51,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
@@ -57,15 +64,39 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Invalid credentials')
         return user
 
+    def create(self, validated_data):
+        user = authenticate(email=validated_data['email'], password=validated_data['password'])
+        if user is None:
+            raise serializers.ValidationError('Invalid credentials')
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+
 # Personal Information serializer
 class PersonalInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = PersonalInformation
-        fields = (
-            'personal_pic', 'first_name', 'middle_name', 'last_name', 'preferred_full_name',
-            'email', 'phone_number', 'nationality', 'marital_status', 'suffix',
-            'date_of_birth', 'birth_name', 'gender', 'country', 'state', 'city'
-        )
+        fields = [
+            'profile_picture',  # New field
+            'first_name',
+            'middle_name',
+            'last_name',
+            'preferred_full_name',
+            'email',
+            'phone_number',
+            'nationality',
+            'date_of_birth',
+            'birth_name',
+            'marital_status',
+            'suffix',
+            'gender',
+            'country',
+            'state',
+            'city',
+        ]
 
     def create(self, validated_data):
         return PersonalInformation.objects.create(**validated_data)
@@ -254,27 +285,71 @@ class WorkItemSerializer(serializers.ModelSerializer):
         # Add any additional validation for each type of work if necessary
         return data
 
-class SWOTAnalysisSerializer(serializers.ModelSerializer):
+class StrengthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Strength
+        fields = ['id', 'description']
+
+class WeaknessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Weakness
+        fields = ['id', 'description']
+
+class OpportunitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Opportunity
+        fields = ['id', 'description']
+
+class ThreatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Threat
+        fields = ['id', 'description']
+
+class SwotAnalysisSerializer(serializers.ModelSerializer):
+    strengths = StrengthSerializer(many=True)
+    weaknesses = WeaknessSerializer(many=True)
+    opportunities = OpportunitySerializer(many=True)
+    threats = ThreatSerializer(many=True)
+
     class Meta:
         model = SwotAnalysis
-        fields = ['strengths', 'weaknesses', 'opportunities', 'threats', 'created_at', 'updated_at']
-
-    def validate(self, data):
-        # You can still validate certain conditions here if necessary, but remove the strict non-empty checks.
-        # For example, you could add a condition that at least one field must be provided.
-        if not any([data.get('strengths'), data.get('weaknesses'), data.get('opportunities'), data.get('threats')]):
-            raise serializers.ValidationError('At least one SWOT field must be provided.')
-        return data
+        fields = ['id', 'user', 'strengths', 'weaknesses', 'opportunities', 'threats']
+        read_only_fields = ['user']
 
     def create(self, validated_data):
-        # Create a new SWOTAnalysis instance with the validated data
-        return SwotAnalysis.objects.create(**validated_data)
+        strengths_data = validated_data.pop('strengths')
+        weaknesses_data = validated_data.pop('weaknesses')
+        opportunities_data = validated_data.pop('opportunities')
+        threats_data = validated_data.pop('threats')
+
+        swot_analysis = SwotAnalysis.objects.create(user=self.context['request'].user)
+
+        # Process related instances
+        self._process_nested_objects(swot_analysis, 'strengths', strengths_data)
+        self._process_nested_objects(swot_analysis, 'weaknesses', weaknesses_data)
+        self._process_nested_objects(swot_analysis, 'opportunities', opportunities_data)
+        self._process_nested_objects(swot_analysis, 'threats', threats_data)
+
+        return swot_analysis
 
     def update(self, instance, validated_data):
-        # Update the existing SWOTAnalysis instance with the new data
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+        # Clear existing related objects
+        instance.strengths.all().delete()
+        instance.weaknesses.all().delete()
+        instance.opportunities.all().delete()
+        instance.threats.all().delete()
+
+        strengths_data = validated_data.pop('strengths')
+        weaknesses_data = validated_data.pop('weaknesses')
+        opportunities_data = validated_data.pop('opportunities')
+        threats_data = validated_data.pop('threats')
+
+        # Process related instances
+        self._process_nested_objects(instance, 'strengths', strengths_data, create=True)
+        self._process_nested_objects(instance, 'weaknesses', weaknesses_data, create=True)
+        self._process_nested_objects(instance, 'opportunities', opportunities_data, create=True)
+        self._process_nested_objects(instance, 'threats', threats_data, create=True)
+
         return instance
 class MainGoalSerializer(serializers.ModelSerializer):
     subgoals = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -289,13 +364,32 @@ class SubGoalSerializer(serializers.ModelSerializer):
         model = SubGoal
         fields = ['id', 'main_goal', 'name', 'description', 'start_date', 'end_date', 'status', 'required_effort', 'spent_effort', 'coach', 'accomplishment']
 class CourseSerializer(serializers.ModelSerializer):
-    is_purchased = serializers.SerializerMethodField()
+    final_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = ['id', 'course_id', 'title', 'details', 'instructor', 'start_date', 'end_date', 'credit_hours', 'price', 'is_purchased']
+        fields = [
+            'id', 'title', 'price', 'discount_percentage', 'discount_start_date', 
+            'discount_end_date', 'final_price'
+        ]
 
-    def get_is_purchased(self, obj):
-        user = self.context['request'].user
-        return user in obj.purchasers.all()
+    def get_final_price(self, obj):
+        return obj.discounted_price
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = ['id', 'video_lecture', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']
 
+class VideoLectureSerializer(serializers.ModelSerializer):
+    quizzes = QuizSerializer(many=True, required=False)
+
+    class Meta:
+        model = VideoLecture
+        fields = ['id', 'course', 'title', 'video_file', 'description', 'quizzes']
+
+    def create(self, validated_data):
+        quizzes_data = validated_data.pop('quizzes', [])
+        video_lecture = VideoLecture.objects.create(**validated_data)
+        for quiz_data in quizzes_data:
+            Quiz.objects.create(video_lecture=video_lecture, **quiz_data)
+        return video_lecture
