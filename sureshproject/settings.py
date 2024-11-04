@@ -20,7 +20,7 @@ SECRET_KEY = 'django-insecure--9vyg166!n-7b#yk)lp9h91=q=#^rq!jq03hjkm6e#gd0gvt2*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['https://dordod.com/']
+ALLOWED_HOSTS = ['https://dordod.com/','http://88.222.220.150','www.doddod.com']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
