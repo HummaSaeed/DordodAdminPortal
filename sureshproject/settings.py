@@ -22,7 +22,6 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# Update with production domains
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
