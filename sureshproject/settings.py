@@ -19,7 +19,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com','88.222.220.150']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
