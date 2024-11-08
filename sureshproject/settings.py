@@ -19,7 +19,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com','88.222.220.150']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com', '88.222.220.150', '*']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
@@ -68,9 +68,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sureshproject.wsgi.application'
 
-
-# Database
-# Update to your production database configuration if different
+# Database configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -106,11 +104,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# CORS configuration (for React frontend)
-CORS_ALLOWED_ORIGINS = [
-    "http://dordod.com",
-    "https://dordod.com",
-]
+# CORS configuration
+CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for testing
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -121,7 +116,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'sureshproject/media'
 
 # Security settings for production
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False  # Disabled temporarily for testing HTTP access
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
