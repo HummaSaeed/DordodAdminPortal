@@ -66,26 +66,54 @@ class PersonalInformationView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # Global Information Views
-class GlobalInformationView(generics.RetrieveUpdateDestroyAPIView):
+class GlobalInformationView(generics.ListCreateAPIView):
+    """
+    Handles listing all GlobalInformation for the authenticated user
+    and creating a new GlobalInformation record.
+    """
+    serializer_class = GlobalInformationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Fetch only GlobalInformation associated with the authenticated user
+        return GlobalInformation.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Automatically associate the new record with the logged-in user
+        serializer.save(user=self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        """
+        Custom behavior for creating a new GlobalInformation record.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class GlobalInformationDetailView(generics.RetrieveUpdateDestroyAPIView):
+   
     serializer_class = GlobalInformationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return GlobalInformation.objects.get(user=self.request.user)
+        # Ensure the user can only access their own GlobalInformation
+        return GlobalInformation.objects.get(user=self.request.user, pk=self.kwargs['pk'])
 
     def put(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        global_info = self.get_object()
-        self.perform_update(global_info, serializer.validated_data)
-        return Response(serializer.data)
-
-    def perform_update(self, instance, validated_data):
-        serializer = self.get_serializer(instance, data=validated_data, partial=True)
+        
+        partial = kwargs.pop('partial', False)  # Supports partial updates
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data)
 
-
+    def delete(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+        instance.delete()
+        return Response({"detail": "GlobalInformation deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 # Professional Information Views
 class ProfessionalInformationView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProfessionalInformationSerializer
