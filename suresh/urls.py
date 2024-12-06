@@ -20,7 +20,8 @@ from .views import (
     HabitViewSet,
     CourseViewSet,
     VideoLectureViewSet,
-    QuizViewSet
+    QuizViewSet,
+    GlobalInformationDetailView
 )
 
 router = DefaultRouter()
@@ -40,7 +41,8 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('personal-info/', PersonalInformationView.as_view(), name='personal-info'),
-    path('global-info/', GlobalInformationView.as_view(), name='global-info'),
+     path('global-info/', GlobalInformationView.as_view(), name='global-info-list-create'),
+    path('global-info/<int:pk>/', GlobalInformationDetailView.as_view(), name='global-info-detail'),
     path('professional-info/', ProfessionalInformationView.as_view(), name='professional-info'),
     # path('document-upload/', DocumentUploadViewSet.as_view(), name='document-upload'),
 ]

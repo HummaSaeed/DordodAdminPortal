@@ -17,11 +17,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#yk)lp9h91=q=#^rq!jq03hjkm6e#gd0gvt2*')
 
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com', '88.222.220.150', '*']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
+
+# Application definition
 
 # Application definition
 
@@ -81,7 +83,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -108,6 +109,7 @@ USE_TZ = True
 CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for testing
 
 # Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -117,8 +119,8 @@ MEDIA_ROOT = BASE_DIR / 'sureshproject/media'
 
 # Security settings for production
 SECURE_SSL_REDIRECT = False  # Disabled temporarily for testing HTTP access
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+#SESSION_COOKIE_SECURE = True
+#CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -145,3 +147,11 @@ LOGGING = {
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Cookeies
+CSRF_COOKIE_DOMAIN = '.dordod.com'  # Allow cookies for both www and non-www domains
+CSRF_TRUSTED_ORIGINS = ['https://dordod.com', 'http://dordod.com']
+#CSRF_COOKIE_SECURE = True  # Only send the CSRF cookie over HTTPS
+CSRF_COOKIE_HTTPONLY = True  # Helps mitigate cross-site scripting attacks
+CSRF_COOKIE_SAMESITE = 'Lax'  # Lax or Strict to prevent CSRF attacks on cross-site requests
