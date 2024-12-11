@@ -2,25 +2,65 @@ from rest_framework import generics, status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.exceptions import ValidationError
+from django.http import Http404
 from .serializers import (
     RegisterSerializer, 
     LoginSerializer,
     PersonalInformationSerializer,
     GlobalInformationSerializer,
     ProfessionalInformationSerializer,
+    WorkExperienceSerializer,
+    PreviousExperienceSerializer,
+    EducationSerializer,
+    LanguageSkillSerializer,
+    CertificateSerializer,
+    HonorsAwardsPublicationsSerializer,
+    FunctionalSkillSerializer,
+    TechnicalSkillSerializer,
     DocumentUploadSerializer,
     WorkItemSerializer,
     SwotAnalysisSerializer,
     MainGoalSerializer,
     SubGoalSerializer,
     CourseSerializer,
-    HabitSerializer,
     QuizSerializer,
-    VideoLectureSerializer
+    VideoLectureSerializer,
+    StrengthSerializer,
+    WeaknessSerializer,
+    OpportunitySerializer,
+    ThreatSerializer,
+    HabitSerializer,
 )
-from .models import CustomUser,Quiz,VideoLecture, Habit, PersonalInformation, GlobalInformation, ProfessionalInformation, DocumentUpload, WorkItem, SwotAnalysis, MainGoal, SubGoal, Course
+from .models import (
+    CustomUser,
+    PersonalInformation,
+    GlobalInformation,
+    ProfessionalInformation,
+    WorkExperience,
+    PreviousExperience,
+    Education,
+    LanguageSkill,
+    Certificate,
+    HonorsAwardsPublications,
+    FunctionalSkill,
+    TechnicalSkill,
+    DocumentUpload,
+    WorkItem,
+    SwotAnalysis,
+    MainGoal,
+    SubGoal,
+    Course,
+    Quiz,
+    VideoLecture,
+    Strength,
+    Weakness,
+    Opportunity,
+    Threat,
+    Habit,
+)
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 # User Registration View
 class RegisterView(generics.CreateAPIView):
@@ -64,6 +104,93 @@ class PersonalInformationView(generics.RetrieveUpdateDestroyAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+class WorkExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkExperienceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return WorkExperience.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class PreviousExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = PreviousExperienceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return PreviousExperience.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class EducationViewSet(viewsets.ModelViewSet):
+    serializer_class = EducationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Education.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class LanguageSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = LanguageSkillSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return LanguageSkill.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class CertificateViewSet(viewsets.ModelViewSet):
+    serializer_class = CertificateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Certificate.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class HonorsAwardsPublicationsViewSet(viewsets.ModelViewSet):
+    serializer_class = HonorsAwardsPublicationsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return HonorsAwardsPublications.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class FunctionalSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = FunctionalSkillSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return FunctionalSkill.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
+
+class TechnicalSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = TechnicalSkillSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return TechnicalSkill.objects.filter(professional_info__user=self.request.user)
+
+    def perform_create(self, serializer):
+        prof_info, _ = ProfessionalInformation.objects.get_or_create(user=self.request.user)
+        serializer.save(professional_info=prof_info)
 
 # Global Information Views
 class GlobalInformationView(generics.ListCreateAPIView):
@@ -115,24 +242,109 @@ class GlobalInformationDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         return Response({"detail": "GlobalInformation deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 # Professional Information Views
-class ProfessionalInformationView(generics.RetrieveUpdateDestroyAPIView):
+
+
+class ProfessionalInformationViewSet(viewsets.ModelViewSet):
+    queryset = ProfessionalInformation.objects.all()
     serializer_class = ProfessionalInformationSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return ProfessionalInformation.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        if ProfessionalInformation.objects.filter(user=self.request.user).exists():
+            raise ValidationError("Professional Information already exists for this user.")
+        serializer.save(user=self.request.user)
 
     def get_object(self):
-        return ProfessionalInformation.objects.get(user=self.request.user)
+        queryset = self.get_queryset()
+        obj = queryset.first()
+        if not obj:
+            raise Http404("Professional Information not found")
+        self.check_object_permissions(self.request, obj)
+        return obj
 
-    def put(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, partial=True)
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        professional_info = self.get_object()
-        self.perform_update(professional_info, serializer.validated_data)
+        self.perform_update(serializer)
         return Response(serializer.data)
 
-    def perform_update(self, instance, validated_data):
-        serializer = self.get_serializer(instance, data=validated_data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+    @action(detail=True, methods=['post'])
+    def add_work_experience(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = WorkExperienceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_previous_experience(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = PreviousExperienceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_education(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = EducationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_language_skill(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = LanguageSkillSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_certificate(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = CertificateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_honor_award(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = HonorsAwardsPublicationsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_functional_skill(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = FunctionalSkillSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_technical_skill(self, request, pk=None):
+        professional_info = self.get_object()
+        serializer = TechnicalSkillSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(professional_info=professional_info)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class DocumentUploadViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentUploadSerializer
@@ -207,20 +419,28 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated]
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'])
     def purchase(self, request, pk=None):
         course = self.get_object()
         user = request.user
         
-        # Check if the user already purchased the course
-        if user in course.purchasers.all():
-            return Response({'detail': 'You have already purchased this course.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Apply discount if available and simulate purchase
-        final_price = course.discounted_price or course.price  # Assuming `discounted_price` is a field or method
-        # Simulate payment process
+        if course.purchasers.filter(id=user.id).exists():
+            return Response(
+                {'detail': 'You have already purchased this course.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         course.purchasers.add(user)
-        return Response({'detail': f'Course purchased successfully for {final_price}!'}, status=status.HTTP_200_OK)
+        return Response(
+            {'detail': 'Course purchased successfully.'},
+            status=status.HTTP_200_OK
+        )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 class VideoLectureViewSet(viewsets.ModelViewSet):
     queryset = VideoLecture.objects.all()
     serializer_class = VideoLectureSerializer
@@ -228,15 +448,95 @@ class VideoLectureViewSet(viewsets.ModelViewSet):
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
+
+class StrengthViewSet(viewsets.ModelViewSet):
+    serializer_class = StrengthSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Strength.objects.filter(swot_analysis__user=self.request.user)
+
+    def perform_create(self, serializer):
+        swot_analysis = SwotAnalysis.objects.filter(user=self.request.user).first()
+        if not swot_analysis:
+            swot_analysis = SwotAnalysis.objects.create(user=self.request.user)
+        serializer.save(swot_analysis=swot_analysis)
+
+class WeaknessViewSet(viewsets.ModelViewSet):
+    serializer_class = WeaknessSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Weakness.objects.filter(swot_analysis__user=self.request.user)
+
+    def perform_create(self, serializer):
+        swot_analysis = SwotAnalysis.objects.filter(user=self.request.user).first()
+        if not swot_analysis:
+            swot_analysis = SwotAnalysis.objects.create(user=self.request.user)
+        serializer.save(swot_analysis=swot_analysis)
+
+class OpportunityViewSet(viewsets.ModelViewSet):
+    serializer_class = OpportunitySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Opportunity.objects.filter(swot_analysis__user=self.request.user)
+
+    def perform_create(self, serializer):
+        swot_analysis = SwotAnalysis.objects.filter(user=self.request.user).first()
+        if not swot_analysis:
+            swot_analysis = SwotAnalysis.objects.create(user=self.request.user)
+        serializer.save(swot_analysis=swot_analysis)
+
+class ThreatViewSet(viewsets.ModelViewSet):
+    serializer_class = ThreatSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Threat.objects.filter(swot_analysis__user=self.request.user)
+
+    def perform_create(self, serializer):
+        swot_analysis = SwotAnalysis.objects.filter(user=self.request.user).first()
+        if not swot_analysis:
+            swot_analysis = SwotAnalysis.objects.create(user=self.request.user)
+        serializer.save(swot_analysis=swot_analysis)
+
 class HabitViewSet(viewsets.ModelViewSet):
-    queryset = Habit.objects.all()
     serializer_class = HabitSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Only retrieve habits for the currently authenticated user
         return Habit.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Save with the current user
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        habit = self.get_object()
+        today = timezone.now().date()
+
+        if habit.last_completed != today:
+            if habit.last_completed == today - timedelta(days=1):
+                habit.streak += 1
+            else:
+                habit.streak = 1
+            
+            habit.last_completed = today
+            habit.save()
+
+        return Response({
+            'status': 'success',
+            'streak': habit.streak,
+            'message': 'Habit marked as completed'
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_streak(self, request, pk=None):
+        habit = self.get_object()
+        habit.streak = 0
+        habit.save()
+        return Response({
+            'status': 'success',
+            'message': 'Streak reset successfully'
+        })

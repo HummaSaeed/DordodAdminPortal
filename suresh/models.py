@@ -215,29 +215,70 @@ class WorkItem(models.Model):
     work_type = models.CharField(choices=WORK_TYPES, max_length=10)
     title = models.CharField(max_length=255)
     description = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
     def __str__(self):
         return f"{self.title} ({self.work_type}) - {self.user.email}"
 class SwotAnalysis(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='swot_analyses')
 
+    def __str__(self):
+        return f"SWOT Analysis for {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        creating = not self.pk  # Check if this is a new instance
+        super().save(*args, **kwargs)
+        if creating:
+            # Create default entries for SWOT components
+            Strength.objects.create(swot_analysis=self, description="Default Strength")
+            Weakness.objects.create(swot_analysis=self, description="Default Weakness")
+            Opportunity.objects.create(swot_analysis=self, description="Default Opportunity")
+            Threat.objects.create(swot_analysis=self, description="Default Threat")
+
 class Strength(models.Model):
     swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='strengths')
     description = models.TextField()
+
+    def __str__(self):
+        return self.description
 
 class Weakness(models.Model):
     swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='weaknesses')
     description = models.TextField()
 
+    def __str__(self):
+        return self.description
+
 class Opportunity(models.Model):
-    swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='opportunities',null=True, blank=True)
+    swot_analysis = models.ForeignKey(
+        SwotAnalysis, 
+        on_delete=models.CASCADE, 
+        related_name='opportunities',
+        null=True,  # Keep this nullable for existing records
+        default=None  # Add a default value
+    )
     description = models.TextField()
+
+    def __str__(self):
+        return self.description
+
+    def save(self, *args, **kwargs):
+        # If no swot_analysis is set, create a new one for the user
+        if not self.swot_analysis:
+            # You might need to adjust this to get the correct user
+            user = self.swot_analysis.user if self.swot_analysis else None
+            if user:
+                self.swot_analysis, _ = SwotAnalysis.objects.get_or_create(user=user)
+        super().save(*args, **kwargs)
 
 class Threat(models.Model):
     swot_analysis = models.ForeignKey(SwotAnalysis, on_delete=models.CASCADE, related_name='threats')
     description = models.TextField()
+
+    def __str__(self):
+        return self.description
+
 class MainGoal(models.Model):
     GOAL_CATEGORIES = [
         ('spiritual', 'Spiritual Goals'),
@@ -288,11 +329,16 @@ class Course(models.Model):
     discounted_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     purchasers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='purchased_courses')
+
     def __str__(self):
         return self.title
 
+    @property
+    def final_price(self):
+        return self.discounted_price if self.discounted_price else self.price
+
 class VideoLecture(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="video_lectures")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="course_lectures")
     title = models.CharField(max_length=255)
     video_file = models.FileField(upload_to="course_videos/")
     description = models.TextField(blank=True)
@@ -316,37 +362,43 @@ class Quiz(models.Model):
 
     def __str__(self):
         return self.question
+
 class Habit(models.Model):
+    CATEGORIES = [
+        ('health', 'Health & Fitness'),
+        ('learning', 'Learning & Growth'),
+        ('productivity', 'Productivity'),
+        ('mindfulness', 'Mindfulness'),
+        ('social', 'Social & Family'),
+        ('career', 'Career'),
+    ]
+
     FREQUENCIES = [
         ('daily', 'Daily'),
         ('weekly', 'Weekly'),
         ('monthly', 'Monthly'),
     ]
 
-    name = models.CharField(max_length=100)
-    frequency = models.CharField(max_length=10, choices=FREQUENCIES)
-    time = models.TimeField(null=True, blank=True)  # Preferred time for the habit
-    category = models.CharField(max_length=50)  # e.g., Health, Productivity, etc.
+    PRIORITIES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)  
-    updated_at = models.DateTimeField(default=timezone.now)
-    is_active = models.BooleanField(default=True)  # To enable/disable habits
-    reminders = models.BooleanField(default=False)  # Whether to send reminders
-    reminder_time = models.TimeField(null=True, blank=True)  # Time for reminder notification
-    streak = models.IntegerField(default=0)  # To track continuous success
-    last_completed = models.DateField(null=True, blank=True)  # Last completion date
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=CATEGORIES)
+    frequency = models.CharField(max_length=20, choices=FREQUENCIES, default='daily')
+    priority = models.CharField(max_length=20, choices=PRIORITIES, default='medium')
+    description = models.TextField(blank=True)
+    target_value = models.IntegerField(default=1)
+    unit = models.CharField(max_length=50, blank=True)
+    reminder_time = models.TimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    streak = models.IntegerField(default=0)
+    last_completed = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return self.name
-
-    def update_streak(self):
-        """Update streak based on last completed date."""
-        if self.last_completed and self.last_completed == timezone.now().date():
-            self.streak += 1
-            self.save()
-
-    def reset_streak(self):
-        """Reset the streak if not completed today."""
-        if self.last_completed != timezone.now().date():
-            self.streak = 0
-            self.save()
+        return f"{self.name} - {self.user.email}"

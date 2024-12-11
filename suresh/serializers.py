@@ -19,13 +19,13 @@ from .models import (
     MainGoal,
     SubGoal,
     Course,
-    Habit,
     Strength,
     Opportunity,
     Threat,
     Weakness,
     Quiz,
-    VideoLecture
+    VideoLecture,
+    Habit
 )
 
 # CustomUser serializers
@@ -131,143 +131,127 @@ class WorkExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkExperience
         fields = (
-            'organization_name', 'organization_location', 'duration', 'is_current', 
-            'start_date', 'end_date', 'description'
+            'id',
+            'organization_name',
+            'organization_location',
+            'duration',
+            'is_current',
+            'start_date',
+            'end_date',
+            'description'
         )
 
 class PreviousExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = PreviousExperience
         fields = (
-            'title', 'company_name', 'start_date', 'end_date', 'job_responsibilities'
+            'id',
+            'title',
+            'company_name',
+            'start_date',
+            'end_date',
+            'job_responsibilities'
         )
 
 class EducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Education
         fields = (
-            'college_university', 'degree', 'area_of_study', 'degree_completed', 'date_completed'
+            'id',
+            'college_university',
+            'degree',
+            'area_of_study',
+            'degree_completed',
+            'date_completed'
         )
-class HabitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Habit
-        fields = '__all__'
 
 class LanguageSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = LanguageSkill
         fields = (
-            'language', 'speaking_proficiency', 'writing_proficiency', 'reading_proficiency'
+            'id',
+            'language',
+            'speaking_proficiency',
+            'writing_proficiency',
+            'reading_proficiency'
         )
 
 class CertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificate
         fields = (
-            'certification_license', 'description', 'institution', 
-            'effective_date', 'expiration_date', 'attachment'
+            'id',
+            'certification_license',
+            'description',
+            'institution',
+            'effective_date',
+            'expiration_date',
+            'attachment'
         )
 
 class HonorsAwardsPublicationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = HonorsAwardsPublications
         fields = (
-            'honor_reward_publication', 'description', 'institution', 'issue_date', 'attachment'
+            'id',
+            'honor_reward_publication',
+            'description',
+            'institution',
+            'issue_date',
+            'attachment'
         )
 
 class FunctionalSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = FunctionalSkill
-        fields = ('skill', 'proficiency')
+        fields = (
+            'id',
+            'skill',
+            'proficiency'
+        )
 
 class TechnicalSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = TechnicalSkill
-        fields = ('skill', 'proficiency')
+        fields = (
+            'id',
+            'skill',
+            'proficiency'
+        )
 
 class ProfessionalInformationSerializer(serializers.ModelSerializer):
-    work_experience = WorkExperienceSerializer(many=True)
-    previous_experience = PreviousExperienceSerializer(many=True)
-    education = EducationSerializer(many=True)
-    language_skill = LanguageSkillSerializer(many=True)
-    certificates = CertificateSerializer(many=True)
-    honors_awards_publications = HonorsAwardsPublicationsSerializer(many=True)
-    functional_skills = FunctionalSkillSerializer(many=True)
-    technical_skills = TechnicalSkillSerializer(many=True)
+    work_experiences = WorkExperienceSerializer(many=True, read_only=True)
+    previous_experiences = PreviousExperienceSerializer(many=True, read_only=True)
+    educations = EducationSerializer(many=True, read_only=True)
+    language_skills = LanguageSkillSerializer(many=True, read_only=True)
+    certificates = CertificateSerializer(many=True, read_only=True)
+    honors_awards_publications = HonorsAwardsPublicationsSerializer(many=True, read_only=True)
+    functional_skills = FunctionalSkillSerializer(many=True, read_only=True)
+    technical_skills = TechnicalSkillSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProfessionalInformation
-        fields = (
-            'work_experience', 'previous_experience', 'education',
-            'language_skill', 'certificates', 'honors_awards_publications',
-            'functional_skills', 'technical_skills'
-        )
-
-    def create(self, validated_data):
-        # Handle nested objects
-        work_experience_data = validated_data.pop('work_experience', [])
-        previous_experience_data = validated_data.pop('previous_experience', [])
-        education_data = validated_data.pop('education', [])
-        language_skill_data = validated_data.pop('language_skill', [])
-        certificates_data = validated_data.pop('certificates', [])
-        honors_awards_publications_data = validated_data.pop('honors_awards_publications', [])
-        functional_skills_data = validated_data.pop('functional_skills', [])
-        technical_skills_data = validated_data.pop('technical_skills', [])
-
-        # Create main instance
-        professional_info = ProfessionalInformation.objects.create(**validated_data)
-
-        # Create nested objects
-        self._create_or_update_nested_objects(professional_info, 'work_experience', work_experience_data)
-        self._create_or_update_nested_objects(professional_info, 'previous_experience', previous_experience_data)
-        self._create_or_update_nested_objects(professional_info, 'education', education_data)
-        self._create_or_update_nested_objects(professional_info, 'language_skill', language_skill_data)
-        self._create_or_update_nested_objects(professional_info, 'certificates', certificates_data)
-        self._create_or_update_nested_objects(professional_info, 'honors_awards_publications', honors_awards_publications_data)
-        self._create_or_update_nested_objects(professional_info, 'functional_skills', functional_skills_data)
-        self._create_or_update_nested_objects(professional_info, 'technical_skills', technical_skills_data)
-
-        return professional_info
+        fields = [
+            'id',
+            'user',
+            'work_experiences',
+            'previous_experiences',
+            'educations',
+            'language_skills',
+            'certificates',
+            'honors_awards_publications',
+            'functional_skills',
+            'technical_skills'
+        ]
+        read_only_fields = ['user']
 
     def update(self, instance, validated_data):
-        # Handle nested objects
-        work_experience_data = validated_data.pop('work_experience', [])
-        previous_experience_data = validated_data.pop('previous_experience', [])
-        education_data = validated_data.pop('education', [])
-        language_skill_data = validated_data.pop('language_skill', [])
-        certificates_data = validated_data.pop('certificates', [])
-        honors_awards_publications_data = validated_data.pop('honors_awards_publications', [])
-        functional_skills_data = validated_data.pop('functional_skills', [])
-        technical_skills_data = validated_data.pop('technical_skills', [])
-
-        # Update main instance
+        # Handle nested data if needed
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
-        # Update nested objects
-        self._create_or_update_nested_objects(instance, 'work_experience', work_experience_data)
-        self._create_or_update_nested_objects(instance, 'previous_experience', previous_experience_data)
-        self._create_or_update_nested_objects(instance, 'education', education_data)
-        self._create_or_update_nested_objects(instance, 'language_skill', language_skill_data)
-        self._create_or_update_nested_objects(instance, 'certificates', certificates_data)
-        self._create_or_update_nested_objects(instance, 'honors_awards_publications', honors_awards_publications_data)
-        self._create_or_update_nested_objects(instance, 'functional_skills', functional_skills_data)
-        self._create_or_update_nested_objects(instance, 'technical_skills', technical_skills_data)
-
         return instance
 
-    def _create_or_update_nested_objects(self, instance, field_name, nested_data):
-        model_class = getattr(instance, field_name).model
-        for item in nested_data:
-            item_id = item.get('id')
-            if item_id:
-                obj = model_class.objects.get(id=item_id)
-                for attr, value in item.items():
-                    setattr(obj, attr, value)
-                obj.save()
-            else:
-                model_class.objects.create(**item, professional_info=instance)
 class DocumentUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentUpload
@@ -289,27 +273,31 @@ class StrengthSerializer(serializers.ModelSerializer):
     class Meta:
         model = Strength
         fields = ['id', 'description']
+        read_only_fields = ['swot_analysis']
 
 class WeaknessSerializer(serializers.ModelSerializer):
     class Meta:
         model = Weakness
         fields = ['id', 'description']
+        read_only_fields = ['swot_analysis']
 
 class OpportunitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Opportunity
         fields = ['id', 'description']
+        read_only_fields = ['swot_analysis']
 
 class ThreatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Threat
         fields = ['id', 'description']
+        read_only_fields = ['swot_analysis']
 
 class SwotAnalysisSerializer(serializers.ModelSerializer):
-    strengths = StrengthSerializer(many=True)
-    weaknesses = WeaknessSerializer(many=True)
-    opportunities = OpportunitySerializer(many=True)
-    threats = ThreatSerializer(many=True)
+    strengths = StrengthSerializer(many=True, read_only=True)
+    weaknesses = WeaknessSerializer(many=True, read_only=True)
+    opportunities = OpportunitySerializer(many=True, read_only=True)
+    threats = ThreatSerializer(many=True, read_only=True)
 
     class Meta:
         model = SwotAnalysis
@@ -363,23 +351,14 @@ class SubGoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubGoal
         fields = ['id', 'main_goal', 'name', 'description', 'start_date', 'end_date', 'status', 'required_effort', 'spent_effort', 'coach', 'accomplishment']
-class CourseSerializer(serializers.ModelSerializer):
-    final_price = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Course
-        fields = [
-            'id', 'title', 'price', 'discount_percentage', 'discount_start_date', 
-            'discount_end_date', 'final_price'
-        ]
-
-    def get_final_price(self, obj):
-        return obj.discounted_price
+# First define QuizSerializer since it's used by VideoLectureSerializer
 class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = ['id', 'video_lecture', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']
 
+# Then define VideoLectureSerializer since it's used by CourseSerializer
 class VideoLectureSerializer(serializers.ModelSerializer):
     quizzes = QuizSerializer(many=True, required=False)
 
@@ -393,3 +372,57 @@ class VideoLectureSerializer(serializers.ModelSerializer):
         for quiz_data in quizzes_data:
             Quiz.objects.create(video_lecture=video_lecture, **quiz_data)
         return video_lecture
+
+# Finally define CourseSerializer which uses VideoLectureSerializer
+class CourseSerializer(serializers.ModelSerializer):
+    course_lectures = VideoLectureSerializer(many=True, read_only=True)
+    final_price = serializers.SerializerMethodField()
+    is_purchased = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = [
+            'id', 
+            'title', 
+            'description',
+            'instructor',
+            'start_date',
+            'end_date',
+            'credit_hours',
+            'price',
+            'discounted_price',
+            'is_active',
+            'course_lectures',
+            'final_price',
+            'is_purchased'
+        ]
+
+    def get_final_price(self, obj):
+        return float(obj.final_price)
+
+    def get_is_purchased(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.purchasers.filter(id=request.user.id).exists()
+        return False
+
+class HabitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Habit
+        fields = [
+            'id',
+            'name',
+            'category',
+            'frequency',
+            'priority',
+            'description',
+            'target_value',
+            'unit',
+            'reminder_time',
+            'created_at',
+            'updated_at',
+            'is_active',
+            'streak',
+            'last_completed'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'streak', 'last_completed']
