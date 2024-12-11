@@ -3,9 +3,10 @@ from django.utils.safestring import mark_safe
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     CustomUser, PersonalInformation, GlobalInformation, PreviousExperience, Course,
-    ProfessionalInformation, TechnicalSkill, WorkExperience, Education, Habit,
+    ProfessionalInformation, TechnicalSkill, WorkExperience, Education,
     LanguageSkill, Certificate, HonorsAwardsPublications, FunctionalSkill, DocumentUpload,
-    WorkItem, SwotAnalysis, MainGoal, SubGoal,Strength,Weakness,Opportunity,Threat,Quiz,VideoLecture
+    WorkItem, SwotAnalysis, MainGoal, SubGoal,Strength,Weakness,Opportunity,Threat,Quiz,VideoLecture,
+    Habit
 )
 
 # Define a custom admin class for CustomUser
@@ -198,28 +199,6 @@ class WorkItemAdmin(admin.ModelAdmin):
     ordering = ('created_at',)
 
 
-class SwotAnalysisAdmin(admin.ModelAdmin):
-    list_display = ('user', 'get_strengths', 'get_weaknesses', 'get_opportunities', 'get_threats')
-    search_fields = ('user__email',)
-    ordering = ('user',)
-
-    def get_strengths(self, obj):
-        return obj.strengths[:50] if obj.strengths else 'N/A'  # Truncate to 50 characters for display
-    get_strengths.short_description = 'Strengths'
-
-    def get_weaknesses(self, obj):
-        return obj.weaknesses[:50] if obj.weaknesses else 'N/A'
-    get_weaknesses.short_description = 'Weaknesses'
-
-    def get_opportunities(self, obj):
-        return obj.opportunities[:50] if obj.opportunities else 'N/A'
-    get_opportunities.short_description = 'Opportunities'
-
-    def get_threats(self, obj):
-        return obj.threats[:50] if obj.threats else 'N/A'
-    get_threats.short_description = 'Threats'
-
-
 class SubGoalInline(admin.TabularInline):
     model = SubGoal
     extra = 1
@@ -231,12 +210,6 @@ class MainGoalAdmin(admin.ModelAdmin):
     inlines = [SubGoalInline]
     search_fields = ('name',)
     ordering = ('start_date',)
-
-
-class HabitAdmin(admin.ModelAdmin):
-    list_display = ('name',  'frequency', 'created_at', 'updated_at')
-    search_fields = ('name', 'description')
-    ordering = ('created_at',)
 
 
 class QuizInline(admin.TabularInline):
@@ -260,6 +233,32 @@ class VideoLectureAdmin(admin.ModelAdmin):
     list_display = ('course', 'title', 'video_file', 'description')
     inlines = [QuizInline]
 
+@admin.register(Habit)
+class HabitAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'user',
+        'category',
+        'frequency',
+        'priority',
+        'target_value',
+        'unit',
+        'streak',
+        'last_completed',
+        'is_active',
+        'created_at'
+    )
+    list_filter = ('category', 'frequency', 'priority', 'is_active', 'created_at')
+    search_fields = ('name', 'user__email', 'description')
+    readonly_fields = ('created_at', 'updated_at', 'streak', 'last_completed')
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            return qs.filter(user=request.user)
+        return qs
+
 # Register the models with the admin site
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PersonalInformation, PersonalInformationAdmin)
@@ -273,12 +272,9 @@ admin.site.register(HonorsAwardsPublications, HonorAwardAdmin)
 admin.site.register(FunctionalSkill, FunctionalSkillAdmin)
 admin.site.register(DocumentUpload, DocumentUploadAdmin)
 admin.site.register(WorkItem, WorkItemAdmin)
-admin.site.register(SwotAnalysis, SwotAnalysisAdmin)
 admin.site.register(MainGoal, MainGoalAdmin)
 admin.site.register(Strength)
 admin.site.register(Weakness)
 admin.site.register(Opportunity)
 admin.site.register(Threat)
 admin.site.register(Course, CourseAdmin)
-
-admin.site.register(Habit, HabitAdmin)
