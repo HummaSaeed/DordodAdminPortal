@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 from django.http import Http404
 from .serializers import (
-    RegisterSerializer, 
+    RegisterSerializer,
     LoginSerializer,
     PersonalInformationSerializer,
     GlobalInformationSerializer,
@@ -209,46 +209,59 @@ class TechnicalSkillViewSet(viewsets.ModelViewSet):
 
 # Global Information Views
 class GlobalInformationView(generics.ListCreateAPIView):
-    """
-    Handles listing all GlobalInformation for the authenticated user
-    and creating a new GlobalInformation record.
-    """
     serializer_class = GlobalInformationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Fetch only GlobalInformation associated with the authenticated user
         return GlobalInformation.objects.filter(user=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        try:
+            # Try to get existing record
+            instance = GlobalInformation.objects.get(user=request.user)
+            # Update existing record
+            serializer = self.get_serializer(instance, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except GlobalInformation.DoesNotExist:
+            # Create new record if doesn't exist
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     def perform_create(self, serializer):
-        # Automatically associate the new record with the logged-in user
         serializer.save(user=self.request.user)
 
-    def post(self, request, *args, **kwargs):
-        """
-        Custom behavior for creating a new GlobalInformation record.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 class GlobalInformationDetailView(generics.RetrieveUpdateDestroyAPIView):
-   
     serializer_class = GlobalInformationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Ensure the user can only access their own GlobalInformation
-        return GlobalInformation.objects.get(user=self.request.user, pk=self.kwargs['pk'])
+        try:
+            return GlobalInformation.objects.get(user=self.request.user)
+        except GlobalInformation.DoesNotExist:
+            # Create a new record if it doesn't exist
+            return GlobalInformation.objects.create(
+                user=self.request.user,
+                # Add default values if needed
+                date_learned=timezone.now().date(),
+                challenge_group='',
+                degree_of_challenge='',
+                type_of_challenge='',
+                issuing_authority='',
+                religion='',
+                number_of_children=0,
+                occupational_code='',
+                father_husband_guardian_name=''
+            )
 
-    def put(self, request, *args, **kwargs):
-        
-        partial = kwargs.pop('partial', False)  # Supports partial updates
+    def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        self.perform_update(serializer)
         return Response(serializer.data)
 
     def delete(self, request, *args, **kwargs):
