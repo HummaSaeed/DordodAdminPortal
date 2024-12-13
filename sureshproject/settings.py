@@ -106,29 +106,37 @@ USE_I18N = True
 USE_TZ = True
 
 # CORS configuration
-CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for testing
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://dordod.com",
+    "https://dordod.com",
+]
 
-# Static files (CSS, JavaScript, Images)
-# Static files (CSS, JavaScript, Images)
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (user uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'sureshproject/media'
 
-# Security settings for production
-SECURE_SSL_REDIRECT = False  # Disabled temporarily for testing HTTP access
-#SESSION_COOKIE_SECURE = True
-#CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = False 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
 
-# Logging configuration for error tracking in production
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -148,13 +156,9 @@ LOGGING = {
     },
 }
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# Cookeies
-CSRF_COOKIE_DOMAIN = '.dordod.com'  # Allow cookies for both www and non-www domains
+CSRF_COOKIE_DOMAIN = '.dordod.com'  
 CSRF_TRUSTED_ORIGINS = ['https://dordod.com', 'http://dordod.com']
-#CSRF_COOKIE_SECURE = True  # Only send the CSRF cookie over HTTPS
-CSRF_COOKIE_HTTPONLY = True  # Helps mitigate cross-site scripting attacks
-CSRF_COOKIE_SAMESITE = 'Lax'  # Lax or Strict to prevent CSRF attacks on cross-site requests
+CSRF_COOKIE_HTTPONLY = True  
+CSRF_COOKIE_SAMESITE = 'Lax' 

@@ -90,19 +90,34 @@ class PersonalInformationView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return PersonalInformation.objects.get(user=self.request.user)
+        try:
+            return PersonalInformation.objects.get(user=self.request.user)
+        except PersonalInformation.DoesNotExist:
+            # Create a new PersonalInformation object if it doesn't exist
+            return PersonalInformation.objects.create(
+                user=self.request.user,
+                email=self.request.user.email  # Set default email from user
+            )
 
     def put(self, request, *args, **kwargs):
-        personal_info = self.get_object()
+        try:
+            personal_info = self.get_object()
+        except PersonalInformation.DoesNotExist:
+            personal_info = PersonalInformation.objects.create(
+                user=request.user,
+                email=request.user.email
+            )
+        
         serializer = self.get_serializer(personal_info, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(personal_info, serializer.validated_data)
+        self.perform_update(serializer.validated_data)
         return Response(serializer.data)
         
-    def perform_update(self, instance, validated_data):
-        serializer = self.get_serializer(instance, data=validated_data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+    def perform_update(self, validated_data):
+        personal_info = self.get_object()
+        for attr, value in validated_data.items():
+            setattr(personal_info, attr, value)
+        personal_info.save()
 
 class WorkExperienceViewSet(viewsets.ModelViewSet):
     serializer_class = WorkExperienceSerializer
