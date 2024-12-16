@@ -61,16 +61,18 @@ from .models import (
 )
 from datetime import datetime, timedelta
 from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # User Registration View
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
-    def perform_create(self, serializer):
-        # Create the user
-        user = serializer.save()
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = self.perform_create(serializer)
         
-        # Create PersonalInformation for the new user
+        # Create PersonalInformation
         PersonalInformation.objects.create(
             user=user,
             email=user.email,
@@ -79,7 +81,14 @@ class RegisterView(generics.CreateAPIView):
             preferred_full_name=f"{user.first_name} {user.last_name}".strip()
         )
 
-        return user
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': serializer.data
+        }, status=status.HTTP_201_CREATED)
 
 # User Login View
 class LoginView(generics.GenericAPIView):
