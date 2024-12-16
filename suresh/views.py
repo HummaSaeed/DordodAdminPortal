@@ -114,33 +114,26 @@ class PersonalInformationView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        try:
-            return PersonalInformation.objects.get(user=self.request.user)
-        except PersonalInformation.DoesNotExist:
-            # Create a new PersonalInformation object with default values
-            return PersonalInformation.objects.create(
-                user=self.request.user,
-                email=self.request.user.email,
-                first_name=self.request.user.first_name,
-                last_name=self.request.user.last_name,
-                preferred_full_name=f"{self.request.user.first_name} {self.request.user.last_name}".strip()
-            )
+        personal_info, created = PersonalInformation.objects.get_or_create(
+            user=self.request.user,
+            defaults={
+                'email': self.request.user.email,
+                'first_name': self.request.user.first_name,
+                'last_name': self.request.user.last_name,
+                'preferred_full_name': f"{self.request.user.first_name} {self.request.user.last_name}".strip()
+            }
+        )
+        return personal_info
 
-    def update(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def perform_update(self, serializer):
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data)
+
+    def patch(self, request, *args, **kwargs):
+        return self.put(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         try:
