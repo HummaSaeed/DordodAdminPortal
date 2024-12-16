@@ -76,9 +76,6 @@ class GlobalInformation(models.Model):
     occupational_code = models.CharField(max_length=50)
     father_husband_guardian_name = models.CharField(max_length=100)
 
-    class Meta:
-        unique_together = ['user']  # Ensure one record per user
-
     def __str__(self):
         return f"{self.user.first_name}'s Global Info"
 

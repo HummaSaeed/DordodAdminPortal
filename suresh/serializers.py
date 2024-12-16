@@ -43,12 +43,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        validated_data.pop('password_confirm', None)
+        
         user = CustomUser.objects.create_user(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             email=validated_data['email'],
             password=validated_data['password']
         )
+
         return user
 
 
@@ -80,7 +83,8 @@ class PersonalInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = PersonalInformation
         fields = [
-            'profile_picture',  # New field
+            'id',
+            'profile_picture',
             'first_name',
             'middle_name',
             'last_name',
@@ -97,34 +101,41 @@ class PersonalInformationSerializer(serializers.ModelSerializer):
             'state',
             'city',
         ]
-
-    def create(self, validated_data):
-        return PersonalInformation.objects.create(**validated_data)
+        read_only_fields = ['id']
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return PersonalInformation.objects.create(**validated_data)
 
 # Global Information serializer
 class GlobalInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlobalInformation
-        fields = (
-            'date_learned', 'challenge_group', 'degree_of_challenge', 'type_of_challenge',
-            'issuing_authority', 'reference_number', 'religion', 'number_of_children',
-            'occupational_code', 'father_husband_guardian_name'
-        )
-
-    def create(self, validated_data):
-        return GlobalInformation.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+        fields = [
+            'id',
+            'nationality',
+            'current_location',
+            'languages',
+            'time_zone',
+            'availability',
+            'preferred_communication',
+            'social_media_links',
+            'hobbies_interests',
+            'volunteer_work',
+            'travel_experience',
+            'cultural_background',
+            'dietary_preferences',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
 
 # Professional Information serializers
 class WorkExperienceSerializer(serializers.ModelSerializer):

@@ -66,6 +66,21 @@ from django.utils import timezone
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
+    def perform_create(self, serializer):
+        # Create the user
+        user = serializer.save()
+        
+        # Create PersonalInformation for the new user
+        PersonalInformation.objects.create(
+            user=user,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            preferred_full_name=f"{user.first_name} {user.last_name}".strip()
+        )
+
+        return user
+
 # User Login View
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
@@ -93,31 +108,44 @@ class PersonalInformationView(generics.RetrieveUpdateDestroyAPIView):
         try:
             return PersonalInformation.objects.get(user=self.request.user)
         except PersonalInformation.DoesNotExist:
-            # Create a new PersonalInformation object if it doesn't exist
+            # Create a new PersonalInformation object with default values
             return PersonalInformation.objects.create(
                 user=self.request.user,
-                email=self.request.user.email  # Set default email from user
+                email=self.request.user.email,
+                first_name=self.request.user.first_name,
+                last_name=self.request.user.last_name,
+                preferred_full_name=f"{self.request.user.first_name} {self.request.user.last_name}".strip()
             )
 
-    def put(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         try:
-            personal_info = self.get_object()
-        except PersonalInformation.DoesNotExist:
-            personal_info = PersonalInformation.objects.create(
-                user=request.user,
-                email=request.user.email
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-        serializer = self.get_serializer(personal_info, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer.validated_data)
-        return Response(serializer.data)
-        
-    def perform_update(self, validated_data):
-        personal_info = self.get_object()
-        for attr, value in validated_data.items():
-            setattr(personal_info, attr, value)
-        personal_info.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.delete()
+            return Response(
+                {"detail": "Personal Information deleted successfully."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class WorkExperienceViewSet(viewsets.ModelViewSet):
     serializer_class = WorkExperienceSerializer
@@ -242,19 +270,20 @@ class GlobalInformationDetailView(generics.RetrieveUpdateDestroyAPIView):
         try:
             return GlobalInformation.objects.get(user=self.request.user)
         except GlobalInformation.DoesNotExist:
-            # Create a new record if it doesn't exist
             return GlobalInformation.objects.create(
                 user=self.request.user,
-                # Add default values if needed
-                date_learned=timezone.now().date(),
-                challenge_group='',
-                degree_of_challenge='',
-                type_of_challenge='',
-                issuing_authority='',
-                religion='',
-                number_of_children=0,
-                occupational_code='',
-                father_husband_guardian_name=''
+                nationality='',
+                current_location='',
+                languages='',
+                time_zone='',
+                availability='',
+                preferred_communication='',
+                social_media_links='',
+                hobbies_interests='',
+                volunteer_work='',
+                travel_experience='',
+                cultural_background='',
+                dietary_preferences=''
             )
 
     def update(self, request, *args, **kwargs):
