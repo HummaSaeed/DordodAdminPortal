@@ -23,9 +23,6 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
-# Application definition
-
-# Application definition
 
 INSTALLED_APPS = [
     'suresh',

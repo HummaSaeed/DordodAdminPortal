@@ -46,10 +46,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm', None)
         
         user = CustomUser.objects.create_user(
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
             email=validated_data['email'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
         )
 
         return user
