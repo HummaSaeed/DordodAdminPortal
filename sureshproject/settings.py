@@ -19,7 +19,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'dordod.com', 'www.dordod.com']
+ALLOWED_HOSTS = ['dordod.com', 'www.dordod.com']
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
@@ -104,9 +104,10 @@ USE_TZ = True
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
     "http://dordod.com",
     "https://dordod.com",
+    "http://www.dordod.com",
+    "https://www.dordod.com"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -120,11 +121,14 @@ CORS_ALLOW_METHODS = [
 ]
 
 
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = '/django-static/'
+STATIC_ROOT = '/var/www/staticfiles'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'sureshproject/media'
+MEDIA_ROOT = '/var/www/media'
 
 SECURE_SSL_REDIRECT = False 
 SECURE_BROWSER_XSS_FILTER = True
@@ -155,7 +159,7 @@ LOGGING = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_COOKIE_DOMAIN = '.dordod.com'  
+CSRF_COOKIE_DOMAIN = '.dordod.com'
 CSRF_TRUSTED_ORIGINS = ['https://dordod.com', 'http://dordod.com']
 CSRF_COOKIE_HTTPONLY = True  
 CSRF_COOKIE_SAMESITE = 'Lax' 
