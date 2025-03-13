@@ -19,7 +19,12 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['dordod.com', 'www.dordod.com']
+ALLOWED_HOSTS = [
+    'http://dordod.com',
+    'www.dordod.com',
+    'dordod.com',
+    '127.0.0.1',
+]
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
 
@@ -34,11 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,8 +128,8 @@ CORS_ALLOW_METHODS = [
 ]
 
 
-STATIC_URL = '/django-static/'
-STATIC_ROOT = '/var/www/staticfiles'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
@@ -130,10 +137,31 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/var/www/media'
 
-SECURE_SSL_REDIRECT = False 
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+# Security Settings
+SECURE_SSL_REDIRECT = True  # Force HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Session and Cookie Settings
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_DOMAIN = '.dordod.com'
+CSRF_TRUSTED_ORIGINS = [
+    'https://www.dordod.com',
+    'https://dordod.com'
+]
+
+# Static and Media Files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = '/var/www/media'
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
@@ -159,7 +187,8 @@ LOGGING = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_COOKIE_DOMAIN = '.dordod.com'
-CSRF_TRUSTED_ORIGINS = ['https://dordod.com', 'http://dordod.com']
 CSRF_COOKIE_HTTPONLY = True  
 CSRF_COOKIE_SAMESITE = 'Lax' 
+
+# Add WhiteNoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
