@@ -141,9 +141,9 @@ CORS_ALLOW_HEADERS = [
 
 # Update static file configuration
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # Where collectstatic will put files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Where collectstatic will put files
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static')  # Where your static files are stored
+    os.path.join(BASE_DIR, 'static_files')  # Source static files directory
 ]
 
 MEDIA_URL = '/media/'
