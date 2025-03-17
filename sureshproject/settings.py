@@ -17,9 +17,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#yk)lp9h91=q=#^rq!jq03hjkm6e#gd0gvt2*')
 
-DEBUG = True  # Set to True for local development
+DEBUG = False  # Set to False in production
 
 ALLOWED_HOSTS = [
+    'dordod.com',
+    'www.dordod.com',
+    'api.dordod.com',
     'localhost',
     '127.0.0.1',
 ]
@@ -109,10 +112,10 @@ USE_TZ = True
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "https://dordod.com",
+    "https://www.dordod.com",
+    "http://dordod.com",
+    "http://www.dordod.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -147,17 +150,23 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Disable HTTPS-related settings for local development
-SECURE_SSL_REDIRECT = False
-SECURE_PROXY_SSL_HEADER = None
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 # Update CSRF settings for local development
-CSRF_COOKIE_DOMAIN = None
-CSRF_TRUSTED_ORIGINS = []
+CSRF_COOKIE_DOMAIN = 'dordod.com'
+CSRF_TRUSTED_ORIGINS = [
+    "https://dordod.com",
+    "https://www.dordod.com",
+    "http://dordod.com",
+    "http://www.dordod.com",
+    "https://api.dordod.com",
+]
 
 # Static and Media Files
 STATIC_URL = '/static/'
@@ -198,11 +207,3 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Add WhiteNoise configuration
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-
-# Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Or your SMTP server
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'hummasaeed786@gmail.com'  # Your email
-EMAIL_HOST_PASSWORD = 'Humm@786'  # Your email app password
