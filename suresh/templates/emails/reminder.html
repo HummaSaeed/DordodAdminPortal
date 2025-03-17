@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ subject }}</title>
+</head>
+<body>
+    <h2>Hello {{ user.first_name }},</h2>
+    <p>This is your daily reminder for:</p>
+    <ul>
+        {% for habit in habits %}
+        <li>{{ habit.name }} - {{ habit.description }}</li>
+        {% endfor %}
+    </ul>
+    <p>Keep up the good work!</p>
+</body>
+</html> 

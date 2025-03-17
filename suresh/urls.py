@@ -33,6 +33,8 @@ from .views import (
     OpportunityViewSet,
     ThreatViewSet,
     HabitViewSet,
+    UserSettingsView,
+    change_password,
 )
 
 router = DefaultRouter()
@@ -67,4 +69,6 @@ urlpatterns = [
     path('personal-info/', PersonalInformationView.as_view(), name='personal-info'),
     path('global-info/', GlobalInformationView.as_view(), name='global-info-list-create'),
     path('global-info/<int:pk>/', GlobalInformationDetailView.as_view(), name='global-info-detail'),
+    path('settings/', UserSettingsView.as_view(), name='user-settings'),
+    path('change-password/', change_password, name='change-password'),
 ]

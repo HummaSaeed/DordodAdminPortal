@@ -6,7 +6,7 @@ from .models import (
     ProfessionalInformation, TechnicalSkill, WorkExperience, Education,
     LanguageSkill, Certificate, HonorsAwardsPublications, FunctionalSkill, DocumentUpload,
     WorkItem, SwotAnalysis, MainGoal, SubGoal,Strength,Weakness,Opportunity,Threat,Quiz,VideoLecture,
-    Habit
+    Habit, UserSettings
 )
 
 class CustomUserAdmin(admin.ModelAdmin):
@@ -126,12 +126,63 @@ class PersonalInformationAdmin(admin.ModelAdmin):
 
 class GlobalInformationAdmin(admin.ModelAdmin):
     list_display = (
-        'user', 'date_learned', 'challenge_group', 'degree_of_challenge',
-        'type_of_challenge', 'issuing_authority', 'reference_number',
-        'religion', 'number_of_children', 'occupational_code', 'father_husband_guardian_name'
+        'user',
+        'nationality',
+        'current_location',
+        'time_zone',
+        'availability',
+        'preferred_communication',
+        'dietary_preferences',
+        'created_at',
+        'updated_at'
     )
-    search_fields = ('user__email', 'challenge_group')
-    ordering = ('user',)
+    search_fields = (
+        'user__email',
+        'nationality',
+        'current_location',
+        'hobbies_interests',
+        'cultural_background'
+    )
+    list_filter = (
+        'created_at',
+        'updated_at',
+        'time_zone',
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': (
+                'user',
+                'nationality',
+                'current_location',
+                'languages',
+                'time_zone',
+            )
+        }),
+        ('Availability & Communication', {
+            'fields': (
+                'availability',
+                'preferred_communication',
+                'social_media_links',
+            )
+        }),
+        ('Personal Details', {
+            'fields': (
+                'hobbies_interests',
+                'volunteer_work',
+                'travel_experience',
+                'cultural_background',
+                'dietary_preferences',
+            )
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
 
 
 class TechnicalSkillAdmin(admin.ModelAdmin):
@@ -257,6 +308,13 @@ class HabitAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             return qs.filter(user=request.user)
         return qs
+
+@admin.register(UserSettings)
+class UserSettingsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'email_notifications', 'push_notifications', 'reminder_time', 'dark_mode', 'updated_at')
+    list_filter = ('email_notifications', 'push_notifications', 'dark_mode')
+    search_fields = ('user__email',)
+    readonly_fields = ('created_at', 'updated_at')
 
 # Register the models with the admin site
 admin.site.register(CustomUser, CustomUserAdmin)

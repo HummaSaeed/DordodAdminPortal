@@ -17,12 +17,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure--9vyg166!n-7b#yk)lp9h91=q=#^rq!jq03hjkm6e#gd0gvt2*')
 
-DEBUG = False
+DEBUG = True  # Set to True for local development
 
 ALLOWED_HOSTS = [
-    'dordod.com',
-    'www.dordod.com',
-    # 'your_server_ip'
+    'localhost',
+    '127.0.0.1',
 ]
 
 AUTH_USER_MODEL = 'suresh.CustomUser'
@@ -110,10 +109,10 @@ USE_TZ = True
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://dordod.com",
-    "https://dordod.com",
-    "http://www.dordod.com",
-    "https://www.dordod.com"
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -126,6 +125,17 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -134,23 +144,20 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/var/www/media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Security Settings
-SECURE_SSL_REDIRECT = True  # Force HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# Disable HTTPS-related settings for local development
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = None
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
 
-# Session and Cookie Settings
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_DOMAIN = '.dordod.com'
-CSRF_TRUSTED_ORIGINS = [
-    'https://www.dordod.com',
-    'https://dordod.com'
-]
+# Update CSRF settings for local development
+CSRF_COOKIE_DOMAIN = None
+CSRF_TRUSTED_ORIGINS = []
 
 # Static and Media Files
 STATIC_URL = '/static/'
@@ -160,7 +167,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/var/www/media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  
@@ -190,4 +197,12 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax' 
 
 # Add WhiteNoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Or your SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'hummasaeed786@gmail.com'  # Your email
+EMAIL_HOST_PASSWORD = 'Humm@786'  # Your email app password

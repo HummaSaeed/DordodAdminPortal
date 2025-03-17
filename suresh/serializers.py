@@ -25,58 +25,85 @@ from .models import (
     Weakness,
     Quiz,
     VideoLecture,
-    Habit
+    Habit,
+    UserSettings
 )
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 # CustomUser serializers
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    password_confirm = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'first_name', 'last_name', 'email', 'password', 'password_confirm')
+        fields = ('email', 'password', 'confirm_password', 'first_name', 'last_name')
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            'email': {'required': True}
+        }
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
 
     def validate(self, data):
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError({'password': 'Passwords must match.'})
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"password": "Passwords don't match"})
+        
+        # Validate password strength
+        try:
+            validate_password(data['password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)})
+            
         return data
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm', None)
+        # Remove confirm_password from the data
+        validated_data.pop('confirm_password')
         
+        # Generate username from email
+        email = validated_data['email']
+        base_username = email.split('@')[0]
+        username = base_username
+        
+        # Make username unique by adding numbers if needed
+        counter = 1
+        while CustomUser.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        # Create user with generated username
         user = CustomUser.objects.create_user(
+            username=username,
             email=validated_data['email'],
             password=validated_data['password'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name']
         )
-
         return user
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField()
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True)
 
     def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
-        user = authenticate(email=email, password=password)
-        if user is None:
-            raise serializers.ValidationError('Invalid credentials')
-        return user
-
-    def create(self, validated_data):
-        user = authenticate(email=validated_data['email'], password=validated_data['password'])
-        if user is None:
-            raise serializers.ValidationError('Invalid credentials')
-
-        refresh = RefreshToken.for_user(user)
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-        }
+        user = authenticate(email=data['email'], password=data['password'])
+        if not user:
+            raise serializers.ValidationError({
+                'error': 'Invalid email or password'
+            })
+        if not user.is_active:
+            raise serializers.ValidationError({
+                'error': 'User account is disabled'
+            })
+        data['user'] = user
+        return data
 
 # Personal Information serializer
 class PersonalInformationSerializer(serializers.ModelSerializer):
@@ -135,6 +162,23 @@ class GlobalInformationSerializer(serializers.ModelSerializer):
             'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Get the user from the request context
+        user = self.context['request'].user
+        
+        # Create GlobalInformation instance with the user
+        global_info = GlobalInformation.objects.create(
+            user=user,
+            **validated_data
+        )
+        return global_info
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 # Professional Information serializers
 class WorkExperienceSerializer(serializers.ModelSerializer):
@@ -314,41 +358,62 @@ class SwotAnalysisSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'strengths', 'weaknesses', 'opportunities', 'threats']
         read_only_fields = ['user']
 
-    def create(self, validated_data):
-        strengths_data = validated_data.pop('strengths')
-        weaknesses_data = validated_data.pop('weaknesses')
-        opportunities_data = validated_data.pop('opportunities')
-        threats_data = validated_data.pop('threats')
+    def _create_items(self, swot_analysis, items_data, model_class):
+        for item in items_data:
+            # Handle both string and dictionary formats
+            description = item if isinstance(item, str) else item.get('description', '')
+            model_class.objects.create(
+                swot_analysis=swot_analysis,
+                description=description
+            )
 
+    def create(self, validated_data):
+        # Create SwotAnalysis instance
         swot_analysis = SwotAnalysis.objects.create(user=self.context['request'].user)
 
-        # Process related instances
-        self._process_nested_objects(swot_analysis, 'strengths', strengths_data)
-        self._process_nested_objects(swot_analysis, 'weaknesses', weaknesses_data)
-        self._process_nested_objects(swot_analysis, 'opportunities', opportunities_data)
-        self._process_nested_objects(swot_analysis, 'threats', threats_data)
+        # Get nested data from the request data
+        request_data = self.context['request'].data
+
+        # Create components if provided
+        if 'strengths' in request_data:
+            self._create_items(swot_analysis, request_data['strengths'], Strength)
+
+        if 'weaknesses' in request_data:
+            self._create_items(swot_analysis, request_data['weaknesses'], Weakness)
+
+        if 'opportunities' in request_data:
+            self._create_items(swot_analysis, request_data['opportunities'], Opportunity)
+
+        if 'threats' in request_data:
+            self._create_items(swot_analysis, request_data['threats'], Threat)
 
         return swot_analysis
 
     def update(self, instance, validated_data):
-        # Clear existing related objects
-        instance.strengths.all().delete()
-        instance.weaknesses.all().delete()
-        instance.opportunities.all().delete()
-        instance.threats.all().delete()
+        request_data = self.context['request'].data
 
-        strengths_data = validated_data.pop('strengths')
-        weaknesses_data = validated_data.pop('weaknesses')
-        opportunities_data = validated_data.pop('opportunities')
-        threats_data = validated_data.pop('threats')
+        # Update strengths
+        if 'strengths' in request_data:
+            instance.strengths.all().delete()
+            self._create_items(instance, request_data['strengths'], Strength)
 
-        # Process related instances
-        self._process_nested_objects(instance, 'strengths', strengths_data, create=True)
-        self._process_nested_objects(instance, 'weaknesses', weaknesses_data, create=True)
-        self._process_nested_objects(instance, 'opportunities', opportunities_data, create=True)
-        self._process_nested_objects(instance, 'threats', threats_data, create=True)
+        # Update weaknesses
+        if 'weaknesses' in request_data:
+            instance.weaknesses.all().delete()
+            self._create_items(instance, request_data['weaknesses'], Weakness)
+
+        # Update opportunities
+        if 'opportunities' in request_data:
+            instance.opportunities.all().delete()
+            self._create_items(instance, request_data['opportunities'], Opportunity)
+
+        # Update threats
+        if 'threats' in request_data:
+            instance.threats.all().delete()
+            self._create_items(instance, request_data['threats'], Threat)
 
         return instance
+
 class MainGoalSerializer(serializers.ModelSerializer):
     subgoals = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
@@ -436,3 +501,41 @@ class HabitSerializer(serializers.ModelSerializer):
             'last_completed'
         ]
         read_only_fields = ['created_at', 'updated_at', 'streak', 'last_completed']
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({
+                "password": "Password fields didn't match."
+            })
+        
+        # Validate password strength
+        try:
+            validate_password(attrs['new_password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({
+                "new_password": list(e.messages)
+            })
+        
+        return attrs
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSettings
+        fields = [
+            'id',
+            'email_notifications',
+            'push_notifications',
+            'reminder_time',
+            'dark_mode',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'updated_at']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return UserSettings.objects.create(user=user, **validated_data)

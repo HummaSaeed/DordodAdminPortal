@@ -2,7 +2,7 @@ from django.db import models
 import json
 from django.conf import settings
 from django.utils import timezone
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 
 # Custom user manager
 class CustomUserManager(BaseUserManager):
@@ -24,17 +24,17 @@ class CustomUserManager(BaseUserManager):
 
 
 # Custom user model
-class CustomUser(AbstractBaseUser, PermissionsMixin):
+class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['username']
 
     def __str__(self):
         return self.email
@@ -65,19 +65,30 @@ class PersonalInformation(models.Model):
 # Global Information Model
 class GlobalInformation(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    date_learned = models.DateField()
-    challenge_group = models.CharField(max_length=100)
-    degree_of_challenge = models.CharField(max_length=50)
-    type_of_challenge = models.CharField(max_length=100)
-    issuing_authority = models.CharField(max_length=100)
-    reference_number = models.CharField(max_length=100, blank=True, null=True)
-    religion = models.CharField(max_length=50)
-    number_of_children = models.IntegerField()
-    occupational_code = models.CharField(max_length=50)
-    father_husband_guardian_name = models.CharField(max_length=100)
+    nationality = models.CharField(max_length=100, default="Not Specified")
+    current_location = models.CharField(max_length=200, default="Not Specified")
+    languages = models.JSONField(default=list, blank=True)
+    time_zone = models.CharField(max_length=50, default="UTC")
+    availability = models.CharField(max_length=200, default="Full-time")
+    preferred_communication = models.CharField(max_length=100, default="Email")
+    social_media_links = models.JSONField(default=dict, blank=True)
+    hobbies_interests = models.TextField(default="Not specified")
+    volunteer_work = models.TextField(default="None")
+    travel_experience = models.TextField(default="None")
+    cultural_background = models.TextField(default="Not specified")
+    dietary_preferences = models.CharField(max_length=200, default="None")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.first_name}'s Global Info"
+        return f"{self.user.email}'s Global Information"
+
+    def save(self, *args, **kwargs):
+        if self.languages is None:
+            self.languages = []
+        if self.social_media_links is None:
+            self.social_media_links = {}
+        super().save(*args, **kwargs)
 
 # Professional Information Model
 class ProfessionalInformation(models.Model):
@@ -385,7 +396,7 @@ class Habit(models.Model):
         ('high', 'High'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=20, choices=CATEGORIES)
     frequency = models.CharField(max_length=20, choices=FREQUENCIES, default='daily')
@@ -402,3 +413,19 @@ class Habit(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.user.email}"
+
+# Add this to your existing models.py
+class UserSettings(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='settings')
+    email_notifications = models.BooleanField(default=True)
+    push_notifications = models.BooleanField(default=True)
+    reminder_time = models.TimeField(default='09:00')
+    dark_mode = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "User Settings"
+
+    def __str__(self):
+        return f"{self.user.email}'s Settings"

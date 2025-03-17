@@ -1,6 +1,6 @@
 from rest_framework import generics, status, viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 from django.http import Http404
@@ -31,6 +31,8 @@ from .serializers import (
     OpportunitySerializer,
     ThreatSerializer,
     HabitSerializer,
+    UserSettingsSerializer,
+    ChangePasswordSerializer,
 )
 from .models import (
     CustomUser,
@@ -58,32 +60,68 @@ from .models import (
     Opportunity,
     Threat,
     Habit,
+    UserSettings,
 )
 from datetime import datetime, timedelta
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.password_validation import validate_password
 
 # User Registration View
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
+    permission_classes = []  # Allow anyone to register
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Create the user
-        user = serializer.save()
-        
-        # Create PersonalInformation
-        PersonalInformation.objects.create(
-            user=user,
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            preferred_full_name=f"{user.first_name} {user.last_name}".strip()
-        )
+        try:
+            # Create the user
+            user = serializer.save()
+            
+            # Create PersonalInformation
+            PersonalInformation.objects.create(
+                user=user,
+                email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                preferred_full_name=f"{user.first_name} {user.last_name}".strip()
+            )
 
-        # Generate tokens
+            # Create UserSettings
+            UserSettings.objects.create(user=user)
+
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+# User Login View
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+    permission_classes = []  # Allow anyone to login
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        
         refresh = RefreshToken.for_user(user)
         
         return Response({
@@ -92,26 +130,10 @@ class RegisterView(generics.CreateAPIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
+                'username': user.username,
                 'first_name': user.first_name,
                 'last_name': user.last_name
             }
-        }, status=status.HTTP_201_CREATED)
-
-# User Login View
-class LoginView(generics.GenericAPIView):
-    serializer_class = LoginSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data
-        
-        # Create JWT tokens
-        refresh = RefreshToken.for_user(user)
-        
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
         }, status=status.HTTP_200_OK)
 
 
@@ -245,31 +267,29 @@ class TechnicalSkillViewSet(viewsets.ModelViewSet):
         serializer.save(professional_info=prof_info)
 
 # Global Information Views
-class GlobalInformationView(generics.ListCreateAPIView):
+class GlobalInformationView(generics.RetrieveUpdateAPIView):
     serializer_class = GlobalInformationSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return GlobalInformation.objects.filter(user=self.request.user)
+    def get_object(self):
+        # Get or create the GlobalInformation instance for the current user
+        obj, created = GlobalInformation.objects.get_or_create(user=self.request.user)
+        return obj
 
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        # Check if GlobalInformation already exists for this user
         try:
-            # Try to get existing record
             instance = GlobalInformation.objects.get(user=request.user)
-            # Update existing record
-            serializer = self.get_serializer(instance, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
         except GlobalInformation.DoesNotExist:
-            # Create new record if doesn't exist
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save()
 
 class GlobalInformationDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = GlobalInformationSerializer
@@ -606,3 +626,47 @@ class HabitViewSet(viewsets.ModelViewSet):
             'status': 'success',
             'message': 'Streak reset successfully'
         })
+
+class UserSettingsView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSettingsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        # Get or create settings for the current user
+        settings, created = UserSettings.objects.get_or_create(user=self.request.user)
+        return settings
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = request.user
+        current_password = serializer.validated_data['current_password']
+        new_password = serializer.validated_data['new_password']
+
+        # Check current password
+        if not user.check_password(current_password):
+            return Response(
+                {'current_password': 'Current password is incorrect'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Validate and set new password
+            validate_password(new_password, user)
+            user.set_password(new_password)
+            user.save()
+
+            return Response(
+                {'message': 'Password updated successfully'}, 
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {'new_password': e.messages}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
