@@ -22,7 +22,6 @@ DEBUG = False  # Set to False in production
 ALLOWED_HOSTS = [
     'dordod.com',
     'www.dordod.com',
-    'api.dordod.com',
     'localhost',
     '127.0.0.1',
 ]
@@ -140,39 +139,11 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+# Update static file configuration
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Where collectstatic will put files
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static')
-]
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Disable HTTPS-related settings for local development
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-
-# Update CSRF settings for local development
-CSRF_COOKIE_DOMAIN = 'dordod.com'
-CSRF_TRUSTED_ORIGINS = [
-    "https://dordod.com",
-    "https://www.dordod.com",
-    "http://dordod.com",
-    "http://www.dordod.com",
-    "https://api.dordod.com",
-]
-
-# Static and Media Files
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static')
+    os.path.join(BASE_DIR, 'static')  # Where your static files are stored
 ]
 
 MEDIA_URL = '/media/'
@@ -206,4 +177,5 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax' 
 
 # Add WhiteNoise configuration
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
