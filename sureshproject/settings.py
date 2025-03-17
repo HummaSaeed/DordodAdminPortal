@@ -111,10 +111,11 @@ USE_TZ = True
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "https://dordod.com",
+    "http://dordod.com/api",
     "https://www.dordod.com",
     "http://dordod.com",
     "http://www.dordod.com",
+    "http://localhost:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
