@@ -141,7 +141,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Update static file configuration
-STATIC_URL = '/static/'
+STATIC_URL = '/django-static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Where collectstatic will put files
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static_files')  # Source static files directory
