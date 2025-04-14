@@ -26,7 +26,20 @@ from .models import (
     Quiz,
     VideoLecture,
     Habit,
-    UserSettings
+    UserSettings,
+    WhiteboardSession,
+    Survey,
+    SurveyResponse,
+    Reward,
+    UserReward,
+    TimeEntry,
+    Note,
+    CreditScore,
+    Assessment,
+    UserAssessment,
+    Resume,
+    Website,
+    Post,
 )
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -539,3 +552,81 @@ class UserSettingsSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         return UserSettings.objects.create(user=user, **validated_data)
+
+# Whiteboard Session Serializer
+class WhiteboardSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhiteboardSession
+        fields = '__all__'
+
+# Survey Serializer
+class SurveySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Survey
+        fields = '__all__'
+
+# Survey Response Serializer
+class SurveyResponseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SurveyResponse
+        fields = '__all__'
+
+# Reward Serializer
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
+        fields = '__all__'
+
+# User Reward Serializer
+class UserRewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserReward
+        fields = '__all__'
+
+# Time Entry Serializer
+class TimeEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeEntry
+        fields = '__all__'
+
+# Note Serializer
+class NoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Note
+        fields = '__all__'
+
+# Credit Score Serializer
+class CreditScoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CreditScore
+        fields = '__all__'
+
+# Assessment Serializer
+class AssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assessment
+        fields = '__all__'
+
+# User Assessment Serializer
+class UserAssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAssessment
+        fields = '__all__'
+
+# Resume Serializer
+class ResumeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Resume
+        fields = '__all__'
+
+# Website Serializer
+class WebsiteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Website
+        fields = '__all__'
+
+# Post Serializer
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = '__all__'

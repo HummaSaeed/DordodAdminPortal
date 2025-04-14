@@ -35,6 +35,19 @@ from .views import (
     HabitViewSet,
     UserSettingsView,
     change_password,
+    WhiteboardSessionViewSet,
+    SurveyViewSet,
+    SurveyResponseViewSet,
+    RewardViewSet,
+    UserRewardViewSet,
+    TimeEntryViewSet,
+    NoteViewSet,
+    CreditScoreViewSet,
+    AssessmentViewSet,
+    UserAssessmentViewSet,
+    ResumeViewSet,
+    WebsiteViewSet,
+    PostViewSet,
 )
 
 router = DefaultRouter()
@@ -59,6 +72,19 @@ router.register(r'weaknesses', WeaknessViewSet, basename='weakness')
 router.register(r'opportunities', OpportunityViewSet, basename='opportunity')
 router.register(r'threats', ThreatViewSet, basename='threat')
 router.register(r'habits', HabitViewSet, basename='habit')
+router.register(r'whiteboard', WhiteboardSessionViewSet, basename='whiteboard')
+router.register(r'surveys', SurveyViewSet, basename='surveys')
+router.register(r'survey-responses', SurveyResponseViewSet, basename='survey-responses')
+router.register(r'rewards', RewardViewSet, basename='rewards')
+router.register(r'user-rewards', UserRewardViewSet, basename='user-rewards')
+router.register(r'timesheet', TimeEntryViewSet, basename='timesheet')
+router.register(r'notes', NoteViewSet, basename='notes')
+router.register(r'cibil', CreditScoreViewSet, basename='cibil')
+router.register(r'assessments', AssessmentViewSet, basename='assessments')
+router.register(r'user-assessments', UserAssessmentViewSet, basename='user-assessments')
+router.register(r'resume', ResumeViewSet, basename='resume')
+router.register(r'website', WebsiteViewSet, basename='website')
+router.register(r'posts', PostViewSet, basename='posts')
 
 urlpatterns = [
     path('', include(router.urls)), 

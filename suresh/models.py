@@ -429,3 +429,105 @@ class UserSettings(models.Model):
 
     def __str__(self):
         return f"{self.user.email}'s Settings"
+
+# Whiteboard Session Model
+class WhiteboardSession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    content = models.TextField()  # Store canvas data as base64
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Survey Model
+class Survey(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    questions = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True)
+
+class SurveyResponse(models.Model):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    answers = models.JSONField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+# Reward Model
+class Reward(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    points_required = models.IntegerField()
+    type = models.CharField(max_length=50)  # badge, trophy, etc.
+    image = models.ImageField(upload_to='rewards/')
+
+class UserReward(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    reward = models.ForeignKey(Reward, on_delete=models.CASCADE)
+    earned_at = models.DateTimeField(auto_now_add=True)
+
+# Time Entry Model
+class TimeEntry(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    task = models.CharField(max_length=255)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    category = models.CharField(max_length=50)
+    notes = models.TextField(blank=True)
+
+# Note Model
+class Note(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    tags = models.JSONField(default=list)
+    is_pinned = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+# Credit Score Model
+class CreditScore(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    score = models.IntegerField()
+    payment_history = models.JSONField()
+    credit_utilization = models.FloatField()
+    credit_age = models.IntegerField()
+    last_updated = models.DateTimeField(auto_now=True)
+
+# Assessment Model
+class Assessment(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    questions = models.JSONField()
+    time_limit = models.IntegerField()  # in minutes
+    passing_score = models.IntegerField()
+
+class UserAssessment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
+    answers = models.JSONField()
+    score = models.IntegerField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+# Resume Model
+class Resume(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    template = models.CharField(max_length=50)
+    content = models.JSONField()
+    last_updated = models.DateTimeField(auto_now=True)
+
+# Website Model
+class Website(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    domain = models.CharField(max_length=255, unique=True)
+    theme = models.CharField(max_length=50)
+    pages = models.JSONField()
+    is_published = models.BooleanField(default=False)
+
+# Post Model
+class Post(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    media = models.FileField(upload_to='posts/', null=True)
+    type = models.CharField(max_length=50)
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='liked_posts')
+    created_at = models.DateTimeField(auto_now_add=True)

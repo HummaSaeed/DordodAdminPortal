@@ -6,7 +6,20 @@ from .models import (
     ProfessionalInformation, TechnicalSkill, WorkExperience, Education,
     LanguageSkill, Certificate, HonorsAwardsPublications, FunctionalSkill, DocumentUpload,
     WorkItem, SwotAnalysis, MainGoal, SubGoal,Strength,Weakness,Opportunity,Threat,Quiz,VideoLecture,
-    Habit, UserSettings
+    Habit, UserSettings,
+    WhiteboardSession,
+    Survey,
+    SurveyResponse,
+    Reward,
+    UserReward,
+    TimeEntry,
+    Note,
+    CreditScore,
+    Assessment,
+    UserAssessment,
+    Resume,
+    Website,
+    Post,
 )
 
 class CustomUserAdmin(admin.ModelAdmin):
@@ -335,3 +348,68 @@ admin.site.register(Weakness)
 admin.site.register(Opportunity)
 admin.site.register(Threat)
 admin.site.register(Course, CourseAdmin)
+
+@admin.register(WhiteboardSession)
+class WhiteboardSessionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'created_at', 'updated_at')
+    search_fields = ('title', 'user__email')
+
+@admin.register(Survey)
+class SurveyAdmin(admin.ModelAdmin):
+    list_display = ('title', 'created_at', 'expires_at')
+    search_fields = ('title',)
+
+@admin.register(SurveyResponse)
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ('survey', 'user', 'submitted_at')
+    search_fields = ('survey__title', 'user__email')
+
+@admin.register(Reward)
+class RewardAdmin(admin.ModelAdmin):
+    list_display = ('title', 'points_required', 'type')
+    search_fields = ('title',)
+
+@admin.register(UserReward)
+class UserRewardAdmin(admin.ModelAdmin):
+    list_display = ('user', 'reward', 'earned_at')
+    search_fields = ('user__email', 'reward__title')
+
+@admin.register(TimeEntry)
+class TimeEntryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'task', 'start_time', 'end_time', 'category')
+    search_fields = ('task', 'user__email')
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'is_pinned', 'created_at')
+    search_fields = ('title', 'user__email')
+
+@admin.register(CreditScore)
+class CreditScoreAdmin(admin.ModelAdmin):
+    list_display = ('user', 'score', 'credit_utilization', 'credit_age', 'last_updated')
+    search_fields = ('user__email',)
+
+@admin.register(Assessment)
+class AssessmentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'time_limit', 'passing_score')
+    search_fields = ('title',)
+
+@admin.register(UserAssessment)
+class UserAssessmentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'assessment', 'score', 'completed_at')
+    search_fields = ('user__email', 'assessment__title')
+
+@admin.register(Resume)
+class ResumeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'template', 'last_updated')
+    search_fields = ('user__email',)
+
+@admin.register(Website)
+class WebsiteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'domain', 'theme', 'is_published')
+    search_fields = ('domain', 'user__email')
+
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ('user', 'content', 'created_at')
+    search_fields = ('content', 'user__email')

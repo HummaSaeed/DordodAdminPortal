@@ -33,6 +33,19 @@ from .serializers import (
     HabitSerializer,
     UserSettingsSerializer,
     ChangePasswordSerializer,
+    WhiteboardSessionSerializer,
+    SurveySerializer,
+    SurveyResponseSerializer,
+    RewardSerializer,
+    UserRewardSerializer,
+    TimeEntrySerializer,
+    NoteSerializer,
+    CreditScoreSerializer,
+    AssessmentSerializer,
+    UserAssessmentSerializer,
+    ResumeSerializer,
+    WebsiteSerializer,
+    PostSerializer,
 )
 from .models import (
     CustomUser,
@@ -61,6 +74,19 @@ from .models import (
     Threat,
     Habit,
     UserSettings,
+    WhiteboardSession,
+    Survey,
+    SurveyResponse,
+    Reward,
+    UserReward,
+    TimeEntry,
+    Note,
+    CreditScore,
+    Assessment,
+    UserAssessment,
+    Resume,
+    Website,
+    Post,
 )
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -670,3 +696,108 @@ def change_password(request):
             )
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Whiteboard Session ViewSet
+class WhiteboardSessionViewSet(viewsets.ModelViewSet):
+    queryset = WhiteboardSession.objects.all()
+    serializer_class = WhiteboardSessionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Survey ViewSet
+class SurveyViewSet(viewsets.ModelViewSet):
+    queryset = Survey.objects.all()
+    serializer_class = SurveySerializer
+    permission_classes = [IsAuthenticated]
+
+class SurveyResponseViewSet(viewsets.ModelViewSet):
+    queryset = SurveyResponse.objects.all()
+    serializer_class = SurveyResponseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+# Reward ViewSet
+class RewardViewSet(viewsets.ModelViewSet):
+    queryset = Reward.objects.all()
+    serializer_class = RewardSerializer
+    permission_classes = [IsAuthenticated]
+
+class UserRewardViewSet(viewsets.ModelViewSet):
+    queryset = UserReward.objects.all()
+    serializer_class = UserRewardSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+# Time Entry ViewSet
+class TimeEntryViewSet(viewsets.ModelViewSet):
+    queryset = TimeEntry.objects.all()
+    serializer_class = TimeEntrySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Note ViewSet
+class NoteViewSet(viewsets.ModelViewSet):
+    queryset = Note.objects.all()
+    serializer_class = NoteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Credit Score ViewSet
+class CreditScoreViewSet(viewsets.ModelViewSet):
+    queryset = CreditScore.objects.all()
+    serializer_class = CreditScoreSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Assessment ViewSet
+class AssessmentViewSet(viewsets.ModelViewSet):
+    queryset = Assessment.objects.all()
+    serializer_class = AssessmentSerializer
+    permission_classes = [IsAuthenticated]
+
+class UserAssessmentViewSet(viewsets.ModelViewSet):
+    queryset = UserAssessment.objects.all()
+    serializer_class = UserAssessmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+# Resume ViewSet
+class ResumeViewSet(viewsets.ModelViewSet):
+    queryset = Resume.objects.all()
+    serializer_class = ResumeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Website ViewSet
+class WebsiteViewSet(viewsets.ModelViewSet):
+    queryset = Website.objects.all()
+    serializer_class = WebsiteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+# Post ViewSet
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
