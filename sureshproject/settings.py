@@ -111,7 +111,6 @@ USE_TZ = True
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://dordod.com/api",
     "https://www.dordod.com",
     "http://dordod.com",
     "http://www.dordod.com",
