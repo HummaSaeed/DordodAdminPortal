@@ -20,6 +20,15 @@ from .models import (
     Resume,
     Website,
     Post,
+    Activity,
+    Coach,
+    CoachRequest,
+    MoodTracking,
+    Accomplishment,
+    AccomplishmentShare,
+    UserJob,
+    Conversation,
+    Message
 )
 
 class CustomUserAdmin(admin.ModelAdmin):
@@ -413,3 +422,117 @@ class WebsiteAdmin(admin.ModelAdmin):
 class PostAdmin(admin.ModelAdmin):
     list_display = ('user', 'content', 'created_at')
     search_fields = ('content', 'user__email')
+
+@admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'activity_type', 'date', 'duration', 'status', 'created_at')
+    search_fields = ('title', 'user__email')
+
+@admin.register(Coach)
+class CoachAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'expertise', 'location', 'rating', 'created_at')
+    list_filter = ('expertise', 'location', 'rating')
+    search_fields = ('name', 'email', 'expertise', 'location')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('user', 'name', 'email', 'profile_picture', 'expertise', 'description')
+        }),
+        ('Contact Information', {
+            'fields': ('phone_number', 'location', 'country', 'state', 'city')
+        }),
+        ('Professional Details', {
+            'fields': ('experience', 'specializations', 'certifications', 'rating')
+        }),
+        ('Additional Information', {
+            'fields': ('bio', 'availability', 'languages_spoken', 'social_media')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(user=request.user)
+
+    def save_model(self, request, obj, form, change):
+        if not change:  # If creating a new coach
+            obj.user = request.user
+        super().save_model(request, obj, form, change)
+
+@admin.register(MoodTracking)
+class MoodTrackingAdmin(admin.ModelAdmin):
+    list_display = (
+        'user',
+        'current_mood',
+        'energy_level',
+        'stress_level',
+        'date',
+        'created_at'
+    )
+    list_filter = (
+        'current_mood',
+        'date',
+        'created_at'
+    )
+    search_fields = (
+        'user__email',
+        'notes'
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-date', '-created_at')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            return qs.filter(user=request.user)
+        return qs
+
+@admin.register(Accomplishment)
+class AccomplishmentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'user', 'category', 'date', 'is_public', 'created_at')
+    list_filter = ('category', 'is_public', 'date', 'created_at')
+    search_fields = ('title', 'description', 'user__email')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('user', 'title', 'description', 'category', 'date')
+        }),
+        ('Details', {
+            'fields': ('impact', 'evidence', 'is_public')
+        }),
+        ('Additional Information', {
+            'fields': ('tags', 'skills_used', 'metrics', 'external_links')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(user=request.user)
+
+@admin.register(AccomplishmentShare)
+class AccomplishmentShareAdmin(admin.ModelAdmin):
+    list_display = ('accomplishment', 'platform', 'shared_at', 'is_successful')
+    list_filter = ('platform', 'is_successful', 'shared_at')
+    search_fields = ('accomplishment__title', 'message')
+    readonly_fields = ('shared_at',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(accomplishment__user=request.user)
+
+admin.site.register(UserJob)
+admin.site.register(Conversation)
+admin.site.register(Message)

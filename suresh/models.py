@@ -3,6 +3,7 @@ import json
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Custom user manager
 class CustomUserManager(BaseUserManager):
@@ -531,3 +532,235 @@ class Post(models.Model):
     type = models.CharField(max_length=50)
     likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='liked_posts')
     created_at = models.DateTimeField(auto_now_add=True)
+
+from django.db import models
+from django.conf import settings
+
+class Activity(models.Model):
+    ACTIVITY_TYPES = [
+        ('physical', 'Physical Activity'),
+        ('learning', 'Learning'),
+        ('work', 'Work'),
+        ('social', 'Social'),
+    ]
+
+    STATUS_CHOICES = [
+        ('planned', 'Planned'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES, default='physical')  # Set default value
+    date = models.DateField(blank=True, null=True)  # Make date field optional
+    duration = models.PositiveIntegerField(blank=True, null=True)  # Duration in minutes
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    timesheet = models.TextField(blank=True,null=True)  # Optional field for additional notes or logs
+    created_at = models.DateTimeField(auto_now_add=True)  # Add created_at field
+    updated_at = models.DateTimeField(auto_now=True)      # Add updated_at field
+
+    def __str__(self):
+        return self.title
+
+class Coach(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    expertise = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    profile_picture = models.URLField(blank=True, null=True)
+    email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    availability = models.JSONField(default=dict, blank=True, null=True)
+    certifications = models.JSONField(default=list, blank=True, null=True)
+    experience = models.TextField(blank=True, null=True)
+    rating = models.FloatField(default=0.0)
+    specializations = models.JSONField(default=list, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    social_media = models.JSONField(default=dict, blank=True, null=True)
+    languages_spoken = models.JSONField(default=list, blank=True, null=True)
+    nationality = models.CharField(max_length=30, blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    gender = models.CharField(max_length=10, blank=True, null=True)
+    country = models.CharField(max_length=30, blank=True, null=True)
+    state = models.CharField(max_length=30, blank=True, null=True)
+    city = models.CharField(max_length=30, blank=True, null=True)
+    work_experiences = models.ManyToManyField('WorkExperience', blank=True)
+    educations = models.ManyToManyField('Education', blank=True)
+    language_skills = models.ManyToManyField('LanguageSkill', blank=True)
+    certificates = models.ManyToManyField('Certificate', blank=True)
+    honors_awards = models.ManyToManyField('HonorsAwardsPublications', blank=True)
+    functional_skills = models.ManyToManyField('FunctionalSkill', blank=True)
+    technical_skills = models.ManyToManyField('TechnicalSkill', blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name or self.user.email if self.user else 'Unnamed Coach'
+
+    def save(self, *args, **kwargs):
+        if not self.name and self.user:
+            self.name = f"{self.user.first_name} {self.user.last_name}".strip()
+        if not self.email and self.user:
+            self.email = self.user.email
+        
+        # Ensure JSON fields have proper defaults
+        if self.availability is None:
+            self.availability = {}
+        if self.certifications is None:
+            self.certifications = []
+        if self.specializations is None:
+            self.specializations = []
+        if self.social_media is None:
+            self.social_media = {}
+        if self.languages_spoken is None:
+            self.languages_spoken = []
+            
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Coach'
+        verbose_name_plural = 'Coaches'
+
+class CoachRequest(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    coach = models.ForeignKey(Coach, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} -> {self.coach} ({self.status})"
+
+class MoodTracking(models.Model):
+    MOOD_CHOICES = [
+        ('Happy', 'Happy'),
+        ('Excited', 'Excited'),
+        ('Calm', 'Calm'),
+        ('Focused', 'Focused'),
+        ('Tired', 'Tired'),
+        ('Stressed', 'Stressed'),
+        ('Anxious', 'Anxious'),
+        ('Frustrated', 'Frustrated'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    current_mood = models.CharField(max_length=20, choices=MOOD_CHOICES)
+    energy_level = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
+    stress_level = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
+    notes = models.TextField(blank=True)
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = ['user', 'date']  # One mood entry per user per day
+
+    def __str__(self):
+        return f"{self.user.email}'s mood on {self.date}: {self.current_mood}"
+
+class Accomplishment(models.Model):
+    CATEGORY_CHOICES = [
+        ('professional', 'Professional'),
+        ('academic', 'Academic'),
+        ('personal', 'Personal'),
+        ('certification', 'Certification'),
+        ('award', 'Award'),
+        ('project', 'Project'),
+        ('publication', 'Publication'),
+        ('volunteer', 'Volunteer'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='professional')
+    date = models.DateField()
+    impact = models.TextField(blank=True, null=True)
+    evidence = models.FileField(upload_to='accomplishments/', blank=True, null=True)
+    is_public = models.BooleanField(default=False)
+    tags = models.JSONField(default=list, blank=True)
+    skills_used = models.JSONField(default=list, blank=True)
+    metrics = models.JSONField(default=dict, blank=True)  # Store quantifiable results
+    external_links = models.JSONField(default=list, blank=True)  # Links to certificates, articles, etc.
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+        verbose_name = 'Accomplishment'
+        verbose_name_plural = 'Accomplishments'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.title}"
+
+    def save(self, *args, **kwargs):
+        # Ensure JSON fields have proper defaults
+        if self.tags is None:
+            self.tags = []
+        if self.skills_used is None:
+            self.skills_used = []
+        if self.metrics is None:
+            self.metrics = {}
+        if self.external_links is None:
+            self.external_links = []
+        super().save(*args, **kwargs)
+
+class AccomplishmentShare(models.Model):
+    PLATFORM_CHOICES = [
+        ('linkedin', 'LinkedIn'),
+        ('twitter', 'Twitter'),
+        ('facebook', 'Facebook'),
+        ('email', 'Email'),
+        ('connections', 'Connections'),
+        ('portfolio', 'Portfolio'),
+    ]
+
+    accomplishment = models.ForeignKey(Accomplishment, on_delete=models.CASCADE)
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    shared_at = models.DateTimeField(auto_now_add=True)
+    message = models.TextField(blank=True)
+    is_successful = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-shared_at']
+
+    def __str__(self):
+        return f"{self.accomplishment.title} shared on {self.platform}"
+
+class UserJob(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_jobs')
+    title = models.CharField(max_length=255)
+    company = models.CharField(max_length=255)
+    location = models.CharField(max_length=255)
+    category = models.CharField(max_length=100, blank=True)
+    contract_type = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class Conversation(models.Model):
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Conversation {self.id}"
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sent_messages', on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Message {self.id} in {self.conversation.id}"

@@ -48,6 +48,14 @@ from .views import (
     ResumeViewSet,
     WebsiteViewSet,
     PostViewSet,
+    ActivityViewSet,
+    CoachViewSet,
+    MoodTrackingViewSet,
+    AccomplishmentViewSet,
+    AccomplishmentShareViewSet,
+    UserJobViewSet,
+    ConversationViewSet,
+    MessageViewSet
 )
 
 router = DefaultRouter()
@@ -85,6 +93,14 @@ router.register(r'user-assessments', UserAssessmentViewSet, basename='user-asses
 router.register(r'resume', ResumeViewSet, basename='resume')
 router.register(r'website', WebsiteViewSet, basename='website')
 router.register(r'posts', PostViewSet, basename='posts')
+router.register(r'activities', ActivityViewSet, basename='activities')
+router.register(r'coaches', CoachViewSet, basename='coaches')
+router.register(r'mood-tracking', MoodTrackingViewSet, basename='mood-tracking')
+router.register(r'accomplishments', AccomplishmentViewSet, basename='accomplishments')
+router.register(r'accomplishment-shares', AccomplishmentShareViewSet, basename='accomplishment-shares')
+router.register(r'user-jobs', UserJobViewSet, basename='user-jobs')
+router.register(r'conversations', ConversationViewSet, basename='conversations')
+router.register(r'messages', MessageViewSet, basename='messages')
 
 urlpatterns = [
     path('', include(router.urls)), 

@@ -46,6 +46,15 @@ from .serializers import (
     ResumeSerializer,
     WebsiteSerializer,
     PostSerializer,
+    ActivitySerializer,
+    CoachSerializer,
+    CoachRequestSerializer,
+    MoodTrackingSerializer,
+    AccomplishmentSerializer,
+    AccomplishmentShareSerializer,
+    UserJobSerializer,
+    ConversationSerializer,
+    MessageSerializer
 )
 from .models import (
     CustomUser,
@@ -87,6 +96,15 @@ from .models import (
     Resume,
     Website,
     Post,
+    Activity,
+    Coach,
+    CoachRequest,
+    MoodTracking,
+    Accomplishment,
+    AccomplishmentShare,
+    UserJob,
+    Conversation,
+    Message
 )
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -801,3 +819,234 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
+
+class ActivityViewSet(viewsets.ModelViewSet):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)  # Automatically set the user
+
+
+class CoachViewSet(viewsets.ModelViewSet):
+    serializer_class = CoachSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.action == 'list':
+            # For listing, return all coaches
+            return Coach.objects.all()
+        elif self.action == 'retrieve':
+            # For retrieving a specific coach
+            return Coach.objects.filter(id=self.kwargs.get('pk'))
+        else:
+            # For other actions, return only the current user's coach profile
+            return Coach.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Create coach profile for the current user
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def requests(self, request, pk=None):
+        """Get all coaching requests for a specific coach"""
+        coach = self.get_object()
+        requests = CoachRequest.objects.filter(coach=coach)
+        serializer = CoachRequestSerializer(requests, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def handle_request(self, request, pk=None):
+        """Handle a coaching request (accept/reject)"""
+        coach = self.get_object()
+        request_id = request.data.get('request_id')
+        action = request.data.get('action')  # 'accept' or 'reject'
+
+        try:
+            coach_request = CoachRequest.objects.get(id=request_id, coach=coach)
+            if action == 'accept':
+                coach_request.status = 'accepted'
+            elif action == 'reject':
+                coach_request.status = 'rejected'
+            else:
+                return Response(
+                    {'error': 'Invalid action'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            coach_request.save()
+            return Response({'status': 'success'})
+        except CoachRequest.DoesNotExist:
+            return Response(
+                {'error': 'Request not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=False, methods=['get'])
+    def my_profile(self, request):
+        """Get the current user's coach profile"""
+        try:
+            coach = Coach.objects.get(user=request.user)
+            serializer = self.get_serializer(coach)
+            return Response(serializer.data)
+        except Coach.DoesNotExist:
+            return Response(
+                {'error': 'Coach profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class MoodTrackingViewSet(viewsets.ModelViewSet):
+    serializer_class = MoodTrackingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Only return mood entries for the current authenticated user
+        return MoodTracking.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Save mood entry with the current user
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """Get today's mood entry for the current user"""
+        today = timezone.now().date()
+        try:
+            mood = MoodTracking.objects.get(user=request.user, date=today)
+            serializer = self.get_serializer(mood)
+            return Response(serializer.data)
+        except MoodTracking.DoesNotExist:
+            return Response({'detail': 'No mood entry for today'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """Get mood history for the current user"""
+        moods = MoodTracking.objects.filter(user=request.user).order_by('-date')
+        serializer = self.get_serializer(moods, many=True)
+        return Response(serializer.data)
+
+class AccomplishmentViewSet(viewsets.ModelViewSet):
+    serializer_class = AccomplishmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Accomplishment.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def share(self, request, pk=None):
+        """Share an accomplishment on a platform"""
+        accomplishment = self.get_object()
+        platform = request.data.get('platform')
+        message = request.data.get('message', '')
+
+        if not platform:
+            return Response(
+                {'error': 'Platform is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create share record
+        share = AccomplishmentShare.objects.create(
+            accomplishment=accomplishment,
+            platform=platform,
+            message=message
+        )
+
+        # Here you would integrate with actual social media APIs
+        # For now, we'll just return success
+        return Response({
+            'message': f'Accomplishment shared on {platform}',
+            'share_id': share.id
+        })
+
+    @action(detail=False, methods=['get'])
+    def public(self, request):
+        """Get public accomplishments"""
+        accomplishments = Accomplishment.objects.filter(is_public=True)
+        serializer = self.get_serializer(accomplishments, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_category(self, request):
+        """Get accomplishments grouped by category"""
+        category = request.query_params.get('category')
+        if category:
+            accomplishments = self.get_queryset().filter(category=category)
+        else:
+            accomplishments = self.get_queryset()
+
+        serializer = self.get_serializer(accomplishments, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get accomplishment statistics"""
+        queryset = self.get_queryset()
+        
+        stats = {
+            'total': queryset.count(),
+            'by_category': {},
+            'public_count': queryset.filter(is_public=True).count(),
+            'recent': queryset.filter(
+                date__gte=timezone.now().date() - timedelta(days=30)
+            ).count()
+        }
+
+        # Count by category
+        for category, _ in Accomplishment.CATEGORY_CHOICES:
+            stats['by_category'][category] = queryset.filter(category=category).count()
+
+        return Response(stats)
+
+class AccomplishmentShareViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = AccomplishmentShareSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return AccomplishmentShare.objects.filter(accomplishment__user=self.request.user)
+
+class UserJobViewSet(viewsets.ModelViewSet):
+    serializer_class = UserJobSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return UserJob.objects.filter(user=self.request.user).order_by('-created')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    serializer_class = ConversationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Conversation.objects.filter(participants=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        conversation = self.get_object()
+        messages = conversation.messages.order_by('created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        conversation = self.get_object()
+        conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+        return Response({'status': 'marked as read'})
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Message.objects.filter(conversation__participants=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
